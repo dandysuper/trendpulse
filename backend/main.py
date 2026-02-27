@@ -4,8 +4,9 @@ Main entry point for running the complete pipeline.
 import asyncio
 import sys
 from database.db import init_db, close_db
-from config import settings, get_api_key
+from config import settings, get_api_key, get_youtube_api_key
 from ingest.rapidapi_ingester import run_ingestion
+from ingest.tiktok_ingester import run_tiktok_ingestion
 from features.calculator import compute_all_features
 from ml.processor import run_ml_pipeline
 
@@ -14,9 +15,10 @@ async def run_full_pipeline():
     """
     Execute the complete data pipeline:
     1. Initialize database
-    2. Ingest YouTube data (RapidAPI)
-    3. Compute features
-    4. Run ML pipeline (embeddings, deduplication, clustering)
+    2. Ingest YouTube data (YouTube Data API v3)
+    3. Ingest TikTok data (Scraptik on RapidAPI)
+    4. Compute features
+    5. Run ML pipeline (embeddings, deduplication, clustering)
     """
     print("=" * 60)
     print("🚀 VIDEO TRENDS ANALYZER - FULL PIPELINE")
@@ -28,25 +30,43 @@ async def run_full_pipeline():
         await init_db(settings.database_path)
         print(f"✅ Database ready: {settings.database_path}")
         
-        # Check for API key
-        api_key = get_api_key()
-        if not api_key:
-            print("\n⚠️  No RapidAPI key found!")
+        # Check for API keys
+        youtube_key = get_youtube_api_key()
+        rapidapi_key = get_api_key()
+        
+        if not youtube_key and not rapidapi_key:
+            print("\n⚠️  No API keys found!")
             print("   You can either:")
-            print("   1. Set RAPIDAPI_KEY in backend/.env")
-            print("   2. Set it via the UI (Settings page)")
-            print("\n   Get your free key at: https://rapidapi.com/Glavier/api/youtube138")
+            print("   1. Set YOUTUBE_API_KEY in backend/.env (free from Google Cloud Console)")
+            print("   2. Set RAPIDAPI_KEY in backend/.env (free from RapidAPI for TikTok)")
+            print("   3. Set them via the UI (Settings page)")
             print("\n   Skipping ingestion for now...")
             video_count = 0
         else:
-            # Step 1: Ingest data
-            print("\n" + "=" * 60)
-            print("STEP 1: DATA INGESTION (RapidAPI YouTube V2)")
-            print("=" * 60)
-            video_count = await run_ingestion(api_key)
+            # Step 1: Ingest YouTube data
+            youtube_count = 0
+            if youtube_key:
+                print("\n" + "=" * 60)
+                print("STEP 1a: YOUTUBE INGESTION (YouTube Data API v3)")
+                print("=" * 60)
+                youtube_count = await run_ingestion(youtube_key)
+            else:
+                print("\n⚠️  No YouTube API key. Skipping YouTube ingestion.")
+            
+            # Step 1b: Ingest TikTok data
+            tiktok_count = 0
+            if rapidapi_key:
+                print("\n" + "=" * 60)
+                print("STEP 1b: TIKTOK INGESTION (Scraptik on RapidAPI)")
+                print("=" * 60)
+                tiktok_count = await run_tiktok_ingestion(rapidapi_key)
+            else:
+                print("\n⚠️  No RapidAPI key. Skipping TikTok ingestion.")
+            
+            video_count = youtube_count + tiktok_count
             
             if video_count == 0:
-                print("⚠️  No videos ingested. Check your RapidAPI key.")
+                print("⚠️  No videos ingested. Check your API keys.")
                 return
         
         # Step 2: Compute features

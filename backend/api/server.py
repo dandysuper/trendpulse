@@ -9,8 +9,8 @@ from datetime import datetime
 import json
 
 from database.db import get_db, init_db, close_db
-from config import settings, set_runtime_api_key, get_api_key
-from ingest.rapidapi_ingester import RapidAPIYouTubeIngester, run_ingestion
+from config import settings, set_runtime_api_key, get_api_key, get_youtube_api_key, is_using_default_key
+from ingest.rapidapi_ingester import YouTubeDataAPIIngester, run_ingestion
 from features.calculator import compute_all_features
 from ml.processor import run_ml_pipeline
 from api.refresh import router as refresh_router
@@ -63,6 +63,7 @@ class ClustersListResponse(BaseModel):
 
 class APIKeyRequest(BaseModel):
     api_key: str
+    key_type: str = "rapidapi"  # "youtube" or "rapidapi"
 
 
 class APIKeyResponse(BaseModel):
@@ -82,7 +83,7 @@ class PipelineResponse(BaseModel):
 # Initialize FastAPI app
 app = FastAPI(
     title="Video Trends Analyzer API",
-    description="MVP backend for analyzing trending YouTube videos with ML-based clustering using RapidAPI YouTube138",
+    description="MVP backend for analyzing trending YouTube & TikTok videos with ML-based clustering",
     version="1.0.0"
 )
 
@@ -401,31 +402,39 @@ async def get_cluster_detail(cluster_id: int):
 @app.post("/api/set-api-key", response_model=APIKeyResponse)
 async def set_api_key(request: APIKeyRequest):
     """
-    Set RapidAPI key for the application.
-    This allows users to configure their API key via the UI.
+    Set API key for the application.
+    Supports key_type: 'youtube' (YouTube Data API v3) or 'rapidapi' (TikTok via Scraptik).
     """
     api_key = request.api_key.strip()
+    key_type = request.key_type.strip().lower()
     
     if not api_key:
         raise HTTPException(status_code=400, detail="API key cannot be empty")
     
-    # Test the API key
-    ingester = RapidAPIYouTubeIngester(api_key)
-    is_valid = await ingester.test_api_key()
+    # Test the API key based on type
+    if key_type == "youtube":
+        ingester = YouTubeDataAPIIngester(api_key)
+        is_valid = await ingester.test_api_key()
+        label = "YouTube Data API v3"
+    else:
+        from ingest.tiktok_ingester import TikTokIngester
+        ingester = TikTokIngester(api_key)
+        is_valid = await ingester.test_api_key()
+        label = "RapidAPI (TikTok Scraptik)"
     
     if not is_valid:
         return APIKeyResponse(
             status="error",
-            message="Invalid API key. Please check your RapidAPI key and try again.",
+            message=f"Invalid {label} key. Please check and try again.",
             is_valid=False
         )
     
     # Store the API key in runtime
-    set_runtime_api_key(api_key)
+    set_runtime_api_key(api_key, key_type=key_type)
     
     return APIKeyResponse(
         status="success",
-        message="API key validated and saved successfully!",
+        message=f"{label} key validated and saved successfully!",
         is_valid=True
     )
 
@@ -433,13 +442,20 @@ async def set_api_key(request: APIKeyRequest):
 @app.get("/api/check-api-key")
 async def check_api_key():
     """
-    Check if an API key is configured.
+    Check which API keys are configured and whether they are defaults or custom.
     """
-    api_key = get_api_key()
+    youtube_key = get_youtube_api_key()
+    rapidapi_key = get_api_key()
+    yt_default = is_using_default_key("youtube")
+    ra_default = is_using_default_key("rapidapi")
     
     return {
-        "has_api_key": api_key is not None,
-        "message": "API key is configured" if api_key else "No API key configured"
+        "has_api_key": True,
+        "has_youtube_key": youtube_key is not None,
+        "has_rapidapi_key": rapidapi_key is not None,
+        "youtube_is_default": yt_default,
+        "rapidapi_is_default": ra_default,
+        "message": "API keys ready (built-in defaults active)"
     }
 
 

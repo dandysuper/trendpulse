@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from typing import Optional
 import asyncio
 
-from config import get_api_key
+from config import get_api_key, get_youtube_api_key
 from ingest.rapidapi_ingester import run_ingestion
 from ingest.tiktok_ingester import run_tiktok_ingestion
 from features.calculator import compute_all_features
@@ -28,30 +28,40 @@ class RefreshResponse(BaseModel):
 async def refresh_data():
     """
     Trigger a full data refresh:
-    1. Ingest new videos from RapidAPI
-    2. Compute features
-    3. Run ML clustering
+    1. Ingest new videos from YouTube Data API v3
+    2. Ingest new videos from TikTok via Scraptik
+    3. Compute features
+    4. Run ML clustering
     """
-    api_key = get_api_key()
+    youtube_key = get_youtube_api_key()
+    rapidapi_key = get_api_key()
     
-    if not api_key:
+    if not youtube_key and not rapidapi_key:
         raise HTTPException(
             status_code=400,
-            detail="No API key configured. Please set your RapidAPI key first."
+            detail="No API keys configured. Please set your YouTube API key and/or RapidAPI key first."
         )
     
     try:
         print("🔄 Starting data refresh...")
         
-        # Run YouTube ingestion
-        print("📊 Ingesting videos from YouTube...")
-        youtube_count = await run_ingestion(api_key)
-        print(f"✅ Ingested {youtube_count} YouTube videos")
+        # Run YouTube ingestion (uses YouTube Data API v3 key)
+        youtube_count = 0
+        if youtube_key:
+            print("📊 Ingesting videos from YouTube Data API v3...")
+            youtube_count = await run_ingestion(youtube_key)
+            print(f"✅ Ingested {youtube_count} YouTube videos")
+        else:
+            print("⚠️  No YouTube API key set. Skipping YouTube ingestion.")
         
-        # Run TikTok ingestion
-        print("🎵 Ingesting videos from TikTok...")
-        tiktok_count = await run_tiktok_ingestion(api_key)
-        print(f"✅ Ingested {tiktok_count} TikTok videos")
+        # Run TikTok ingestion (uses RapidAPI key for Scraptik)
+        tiktok_count = 0
+        if rapidapi_key:
+            print("🎵 Ingesting videos from TikTok via Scraptik...")
+            tiktok_count = await run_tiktok_ingestion(rapidapi_key)
+            print(f"✅ Ingested {tiktok_count} TikTok videos")
+        else:
+            print("⚠️  No RapidAPI key set. Skipping TikTok ingestion.")
         
         video_count = youtube_count + tiktok_count
         

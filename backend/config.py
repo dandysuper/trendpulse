@@ -2,10 +2,19 @@ from pydantic_settings import BaseSettings
 from typing import Optional
 
 
+# Built-in default API keys (ship with the app, work out of the box)
+# Users can override these via .env or the Settings UI if they expire
+DEFAULT_YOUTUBE_API_KEY = "AIzaSyCkbZzJfCkvZxXvzWocllE5PVOVyQD44UM"
+DEFAULT_RAPIDAPI_KEY = "80659924dbmshc70623b53b1cf24p178d07jsne00e44f1a7b3"
+
+
 class Settings(BaseSettings):
     """Application configuration loaded from environment variables."""
     
-    # RapidAPI YouTube138
+    # YouTube Data API v3 (free from Google Cloud Console)
+    youtube_api_key: Optional[str] = None
+    
+    # RapidAPI key (used for TikTok via Scraptik)
     rapidapi_key: Optional[str] = None
     
     # Database
@@ -43,15 +52,32 @@ settings = Settings()
 
 
 # Runtime API key storage (can be set via UI)
-_runtime_api_key: Optional[str] = None
+_runtime_youtube_key: Optional[str] = None
+_runtime_rapidapi_key: Optional[str] = None
 
 
-def set_runtime_api_key(api_key: str):
+def set_runtime_api_key(api_key: str, key_type: str = "rapidapi"):
     """Set API key at runtime (from UI)."""
-    global _runtime_api_key
-    _runtime_api_key = api_key
+    global _runtime_youtube_key, _runtime_rapidapi_key
+    if key_type == "youtube":
+        _runtime_youtube_key = api_key
+    else:
+        _runtime_rapidapi_key = api_key
 
 
 def get_api_key() -> Optional[str]:
-    """Get API key from runtime or settings."""
-    return _runtime_api_key or settings.rapidapi_key
+    """Get RapidAPI key: UI-set > .env > built-in default."""
+    return _runtime_rapidapi_key or settings.rapidapi_key or DEFAULT_RAPIDAPI_KEY
+
+
+def get_youtube_api_key() -> Optional[str]:
+    """Get YouTube API key: UI-set > .env > built-in default."""
+    return _runtime_youtube_key or settings.youtube_api_key or DEFAULT_YOUTUBE_API_KEY
+
+
+def is_using_default_key(key_type: str = "rapidapi") -> bool:
+    """Check if the active key is the built-in default (not user-provided)."""
+    if key_type == "youtube":
+        return not _runtime_youtube_key and not settings.youtube_api_key
+    else:
+        return not _runtime_rapidapi_key and not settings.rapidapi_key

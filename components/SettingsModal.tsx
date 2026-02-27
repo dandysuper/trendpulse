@@ -9,47 +9,56 @@ interface SettingsModalProps {
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onApiKeySet }) => {
-  const [apiKey, setApiKey] = useState('');
+  const [youtubeKey, setYoutubeKey] = useState('');
+  const [rapidapiKey, setRapidapiKey] = useState('');
   const [isValidating, setIsValidating] = useState(false);
+  const [validatingKey, setValidatingKey] = useState<'youtube' | 'rapidapi' | null>(null);
   const [isRunningPipeline, setIsRunningPipeline] = useState(false);
   const [validationStatus, setValidationStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
-  const [hasExistingKey, setHasExistingKey] = useState(false);
+  const [hasYoutubeKey, setHasYoutubeKey] = useState(false);
+  const [hasRapidapiKey, setHasRapidapiKey] = useState(false);
+  const [youtubeIsDefault, setYoutubeIsDefault] = useState(true);
+  const [rapidapiIsDefault, setRapidapiIsDefault] = useState(true);
+  const [showOverride, setShowOverride] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
-      checkExistingKey();
+      checkExistingKeys();
     }
   }, [isOpen]);
 
-  const checkExistingKey = async () => {
+  const checkExistingKeys = async () => {
     try {
       const response = await fetch(`${API_BASE_URL}/api/check-api-key`);
       const data = await response.json();
-      setHasExistingKey(data.has_api_key);
+      setHasYoutubeKey(data.has_youtube_key || false);
+      setHasRapidapiKey(data.has_rapidapi_key || false);
+      setYoutubeIsDefault(data.youtube_is_default ?? true);
+      setRapidapiIsDefault(data.rapidapi_is_default ?? true);
     } catch (error) {
-      console.error('Failed to check API key:', error);
+      console.error('Failed to check API keys:', error);
     }
   };
 
-  const handleSaveApiKey = async () => {
-    if (!apiKey.trim()) {
+  const handleSaveKey = async (keyType: 'youtube' | 'rapidapi') => {
+    const keyValue = keyType === 'youtube' ? youtubeKey : rapidapiKey;
+    if (!keyValue.trim()) {
       setValidationStatus('error');
-      setMessage('Please enter an API key');
+      setMessage(`Please enter a ${keyType === 'youtube' ? 'YouTube' : 'RapidAPI'} key`);
       return;
     }
 
     setIsValidating(true);
+    setValidatingKey(keyType);
     setValidationStatus('idle');
     setMessage('');
 
     try {
       const response = await fetch(`${API_BASE_URL}/api/set-api-key`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ api_key: apiKey }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ api_key: keyValue, key_type: keyType }),
       });
 
       const data = await response.json();
@@ -57,13 +66,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
       if (data.status === 'success') {
         setValidationStatus('success');
         setMessage(data.message);
-        setHasExistingKey(true);
+        if (keyType === 'youtube') setHasYoutubeKey(true);
+        else setHasRapidapiKey(true);
         onApiKeySet();
-        
-        // Auto-close after 2 seconds
-        setTimeout(() => {
-          onClose();
-        }, 2000);
       } else {
         setValidationStatus('error');
         setMessage(data.message);
@@ -73,12 +78,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
       setMessage('Failed to connect to backend. Make sure the server is running.');
     } finally {
       setIsValidating(false);
+      setValidatingKey(null);
     }
   };
 
   const handleRunPipeline = async () => {
     setIsRunningPipeline(true);
     setMessage('Running pipeline... This may take 2-3 minutes.');
+    setValidationStatus('idle');
 
     try {
       const response = await fetch(`${API_BASE_URL}/api/run-pipeline`, {
@@ -88,19 +95,24 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
       const data = await response.json();
 
       if (data.status === 'success') {
-        setMessage(`✅ ${data.message}`);
-        onApiKeySet(); // Trigger refresh
+        setValidationStatus('success');
+        setMessage(data.message);
+        onApiKeySet();
       } else {
-        setMessage(`❌ ${data.message}`);
+        setValidationStatus('error');
+        setMessage(data.message);
       }
     } catch (error) {
-      setMessage('❌ Failed to run pipeline. Check backend logs.');
+      setValidationStatus('error');
+      setMessage('Failed to run pipeline. Check backend logs.');
     } finally {
       setIsRunningPipeline(false);
     }
   };
 
   if (!isOpen) return null;
+
+  const hasAnyKey = hasYoutubeKey || hasRapidapiKey;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
@@ -113,7 +125,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
             </div>
             <div>
               <h2 className="text-xl font-bold text-white">API Settings</h2>
-              <p className="text-sm text-zinc-400">Configure your RapidAPI YouTube V2 key</p>
+              <p className="text-sm text-zinc-400">Configure YouTube & TikTok API keys</p>
             </div>
           </div>
           <button
@@ -126,59 +138,57 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
 
         {/* Content */}
         <div className="p-6 space-y-6">
-          {/* Status Banner */}
-          {hasExistingKey && (
-            <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-4 flex items-start gap-3">
-              <Check className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="text-sm font-medium text-emerald-300">API Key Configured</p>
-                <p className="text-xs text-emerald-400/70 mt-1">
-                  Your RapidAPI key is set and ready to use. You can update it below if needed.
-                </p>
+          {/* Status Banner - Default keys active */}
+          <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-4 flex items-start gap-3">
+            <Check className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-emerald-300">API Keys Active</p>
+              <div className="text-xs mt-2 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-emerald-400/80">YouTube Data API v3</span>
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${
+                    youtubeIsDefault
+                      ? 'bg-blue-500/20 text-blue-300'
+                      : 'bg-emerald-500/20 text-emerald-300'
+                  }`}>
+                    {youtubeIsDefault ? 'Built-in' : 'Custom'}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-emerald-400/80">TikTok (Scraptik / RapidAPI)</span>
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${
+                    rapidapiIsDefault
+                      ? 'bg-blue-500/20 text-blue-300'
+                      : 'bg-emerald-500/20 text-emerald-300'
+                  }`}>
+                    {rapidapiIsDefault ? 'Built-in' : 'Custom'}
+                  </span>
+                </div>
               </div>
+              <p className="text-[11px] text-emerald-400/50 mt-2">
+                App ships with built-in keys. If they expire, enter your own below.
+              </p>
             </div>
-          )}
-
-          {/* Instructions */}
-          <div className="bg-zinc-800/50 border border-zinc-700 rounded-lg p-4 space-y-3">
-            <h3 className="text-sm font-semibold text-white flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 text-blue-400" />
-              How to Get Your API Key
-            </h3>
-            <ol className="text-sm text-zinc-300 space-y-2 ml-6 list-decimal">
-              <li>
-                Visit{' '}
-                <a
-                  href="https://rapidapi.com/ytdlfree/api/youtube-v2"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-400 hover:text-blue-300 inline-flex items-center gap-1"
-                >
-                  RapidAPI YouTube V2
-                  <ExternalLink className="w-3 h-3" />
-                </a>
-              </li>
-              <li>Sign up or log in to RapidAPI (free account)</li>
-              <li>Subscribe to the YouTube V2 API (free tier available)</li>
-              <li>Copy your <code className="px-1.5 py-0.5 bg-zinc-700 rounded text-xs">X-RapidAPI-Key</code></li>
-              <li>Paste it below and click "Save & Validate"</li>
-            </ol>
           </div>
 
-          {/* API Key Input */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-zinc-300">
-              RapidAPI Key
-            </label>
-            <input
-              type="password"
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              placeholder="Enter your RapidAPI key..."
-              className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              disabled={isValidating}
-            />
-          </div>
+          {/* Run Pipeline Button */}
+          <button
+            onClick={handleRunPipeline}
+            disabled={isRunningPipeline}
+            className="w-full px-4 py-3 bg-emerald-600 hover:bg-emerald-700 disabled:bg-zinc-700 disabled:text-zinc-500 text-white font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
+          >
+            {isRunningPipeline ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Running Pipeline...
+              </>
+            ) : (
+              <>
+                <Play className="w-4 h-4" />
+                Run Full Pipeline
+              </>
+            )}
+          </button>
 
           {/* Validation Message */}
           {message && (
@@ -208,52 +218,98 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
             </div>
           )}
 
-          {/* Action Buttons */}
-          <div className="flex gap-3">
+          {/* Override Section - Collapsible */}
+          <div className="border border-zinc-700 rounded-lg overflow-hidden">
             <button
-              onClick={handleSaveApiKey}
-              disabled={isValidating || !apiKey.trim()}
-              className="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-700 disabled:text-zinc-500 text-white font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
+              onClick={() => setShowOverride(!showOverride)}
+              className="w-full px-4 py-3 bg-zinc-800/50 hover:bg-zinc-800 text-sm text-zinc-400 flex items-center justify-between transition-colors"
             >
-              {isValidating ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Validating...
-                </>
-              ) : (
-                <>
-                  <Check className="w-4 h-4" />
-                  Save & Validate
-                </>
-              )}
+              <span className="flex items-center gap-2">
+                <Key className="w-3.5 h-3.5" />
+                Use Your Own API Keys
+              </span>
+              <span className="text-xs">{showOverride ? '▲' : '▼'}</span>
             </button>
 
-            {hasExistingKey && (
-              <button
-                onClick={handleRunPipeline}
-                disabled={isRunningPipeline}
-                className="px-4 py-3 bg-emerald-600 hover:bg-emerald-700 disabled:bg-zinc-700 disabled:text-zinc-500 text-white font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
-              >
-                {isRunningPipeline ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Running...
-                  </>
-                ) : (
-                  <>
-                    <Play className="w-4 h-4" />
-                    Run Pipeline
-                  </>
-                )}
-              </button>
+            {showOverride && (
+              <div className="p-4 space-y-4 border-t border-zinc-700">
+                <p className="text-xs text-zinc-500">
+                  If the built-in keys have expired or hit their limits, enter your own keys below.
+                </p>
+
+                {/* YouTube override */}
+                <div className="space-y-2">
+                  <label className="text-xs font-medium text-zinc-400 flex items-center gap-1.5">
+                    YouTube Data API v3 —{' '}
+                    <a
+                      href="https://console.cloud.google.com/apis/credentials"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-400 hover:text-blue-300 inline-flex items-center gap-0.5"
+                    >
+                      Get free key <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="password"
+                      value={youtubeKey}
+                      onChange={(e) => setYoutubeKey(e.target.value)}
+                      placeholder="Your YouTube API key..."
+                      className="flex-1 px-3 py-2 bg-zinc-800 border border-zinc-600 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent text-sm"
+                      disabled={isValidating}
+                    />
+                    <button
+                      onClick={() => handleSaveKey('youtube')}
+                      disabled={isValidating || !youtubeKey.trim()}
+                      className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-zinc-700 disabled:text-zinc-500 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-1.5"
+                    >
+                      {validatingKey === 'youtube' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                      Save
+                    </button>
+                  </div>
+                </div>
+
+                {/* RapidAPI override */}
+                <div className="space-y-2">
+                  <label className="text-xs font-medium text-zinc-400 flex items-center gap-1.5">
+                    RapidAPI (TikTok Scraptik) —{' '}
+                    <a
+                      href="https://rapidapi.com/scraptik-api-scraptik-api-default/api/scraptik"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-400 hover:text-blue-300 inline-flex items-center gap-0.5"
+                    >
+                      Get free key <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="password"
+                      value={rapidapiKey}
+                      onChange={(e) => setRapidapiKey(e.target.value)}
+                      placeholder="Your RapidAPI key..."
+                      className="flex-1 px-3 py-2 bg-zinc-800 border border-zinc-600 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-sm"
+                      disabled={isValidating}
+                    />
+                    <button
+                      onClick={() => handleSaveKey('rapidapi')}
+                      disabled={isValidating || !rapidapiKey.trim()}
+                      className="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 disabled:bg-zinc-700 disabled:text-zinc-500 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-1.5"
+                    >
+                      {validatingKey === 'rapidapi' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                      Save
+                    </button>
+                  </div>
+                </div>
+              </div>
             )}
           </div>
 
           {/* Info Note */}
           <div className="text-xs text-zinc-500 space-y-1">
-            <p>🔒 Your API key is stored securely in the backend runtime memory.</p>
-            <p>💡 The key is not saved to disk and will need to be re-entered after server restart.</p>
-            <p>⚡ Free tier: 500 requests/month (sufficient for testing)</p>
+            <p>🔒 Custom keys are stored in runtime memory only (cleared on restart).</p>
+            <p>⚡ YouTube: 10,000 free units/day | TikTok Scraptik: free tier on RapidAPI</p>
           </div>
         </div>
       </div>

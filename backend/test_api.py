@@ -1,63 +1,73 @@
 """
-Quick test script to verify RapidAPI integration.
+Quick test script to verify YouTube and TikTok API integration.
 """
 import asyncio
 import sys
-from ingest.rapidapi_ingester import RapidAPIYouTubeIngester
-from config import get_api_key
+from ingest.rapidapi_ingester import YouTubeDataAPIIngester
+from ingest.tiktok_ingester import TikTokIngester
+from config import get_api_key, get_youtube_api_key
 
 async def test_api():
-    """Test the RapidAPI YouTube integration."""
+    """Test YouTube Data API v3 and TikTok Scraptik integration."""
+    success = False
+    
+    # --- YouTube Data API v3 ---
     print("=" * 60)
-    print("🧪 Testing RapidAPI YouTube Integration")
+    print("🧪 Testing YouTube Data API v3")
     print("=" * 60)
     
-    # Get API key
-    api_key = get_api_key()
-    if not api_key:
-        print("❌ No API key found in .env file")
-        print("   Please set RAPIDAPI_KEY in backend/.env")
-        return False
-    
-    print(f"✅ API Key found: {api_key[:10]}...")
-    
-    # Create ingester
-    ingester = RapidAPIYouTubeIngester(api_key)
-    
-    # Test API key
-    print("\n🔑 Testing API key validity...")
-    is_valid = await ingester.test_api_key()
-    
-    if not is_valid:
-        print("❌ API key is invalid or API is not responding")
-        return False
-    
-    print("✅ API key is valid!")
-    
-    # Test search
-    print("\n🔍 Testing search for 'despacito'...")
-    try:
-        videos = await ingester.search_videos(query="despacito", max_results=5)
+    youtube_key = get_youtube_api_key()
+    if not youtube_key:
+        print("⚠️  No YOUTUBE_API_KEY found in .env")
+    else:
+        print(f"✅ YouTube key found: {youtube_key[:10]}...")
+        ingester = YouTubeDataAPIIngester(youtube_key)
         
-        if not videos:
-            print("⚠️  No videos returned from search")
-            return False
+        print("\n🔑 Testing YouTube API key...")
+        is_valid = await ingester.test_api_key()
+        if not is_valid:
+            print("❌ YouTube API key is invalid")
+        else:
+            print("✅ YouTube API key is valid!")
+            print("\n� Fetching trending videos...")
+            videos = await ingester.ingest_trending_videos(country="US", max_results=5)
+            if videos:
+                print(f"✅ Found {len(videos)} trending videos!")
+                for i, v in enumerate(videos[:3], 1):
+                    print(f"  {i}. {v['title']} ({v['view_count']:,} views)")
+                success = True
+            else:
+                print("⚠️  No videos returned")
+    
+    # --- TikTok Scraptik API ---
+    print("\n" + "=" * 60)
+    print("🧪 Testing TikTok Scraptik API (RapidAPI)")
+    print("=" * 60)
+    
+    rapidapi_key = get_api_key()
+    if not rapidapi_key:
+        print("⚠️  No RAPIDAPI_KEY found in .env")
+    else:
+        print(f"✅ RapidAPI key found: {rapidapi_key[:10]}...")
+        tiktok = TikTokIngester(rapidapi_key)
         
-        print(f"✅ Found {len(videos)} videos!")
-        print("\n📹 Sample videos:")
-        for i, video in enumerate(videos[:3], 1):
-            print(f"\n{i}. {video['title']}")
-            print(f"   Channel: {video['channel_title']}")
-            print(f"   Views: {video['view_count']:,}")
-            print(f"   Video ID: {video['video_id']}")
-        
-        return True
-        
-    except Exception as e:
-        print(f"❌ Search failed: {e}")
-        import traceback
-        traceback.print_exc()
-        return False
+        print("\n🔑 Testing TikTok Scraptik API...")
+        is_valid = await tiktok.test_api_key()
+        if not is_valid:
+            print("❌ RapidAPI key is invalid for Scraptik")
+        else:
+            print("✅ TikTok Scraptik API is accessible!")
+            print("\n🔍 Searching TikTok for 'trending'...")
+            videos = await tiktok.search_trending_videos(keywords="trending", max_results=5)
+            if videos:
+                print(f"✅ Found {len(videos)} TikTok videos!")
+                for i, v in enumerate(videos[:3], 1):
+                    print(f"  {i}. {v['title'][:60]}... ({v['view_count']:,} views)")
+                success = True
+            else:
+                print("⚠️  No TikTok videos returned")
+    
+    return success
 
 if __name__ == "__main__":
     success = asyncio.run(test_api())

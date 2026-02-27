@@ -1,437 +1,277 @@
 """
-RapidAPI YouTube ingestion module.
-Fetches channel videos using RapidAPI YouTube endpoint.
+YouTube Data API v3 ingestion module.
+Fetches trending videos and search results using the official YouTube API.
+Free tier: 10,000 quota units/day (trending list = 1 unit, search = 100 units).
+Get your free API key: https://console.cloud.google.com/apis/credentials
+Enable: YouTube Data API v3
 """
 import httpx
 from datetime import datetime, timedelta
 from typing import List, Dict, Any, Optional
 import json
+import re
 from config import settings
 from database.db import get_db
 
 
-class RapidAPIYouTubeIngester:
-    """Handles data ingestion from RapidAPI YouTube API."""
+class YouTubeDataAPIIngester:
+    """Handles data ingestion from the official YouTube Data API v3."""
     
-    BASE_URL = "https://youtube138.p.rapidapi.com"
+    BASE_URL = "https://www.googleapis.com/youtube/v3"
     
     def __init__(self, api_key: str):
         self.api_key = api_key
-        self.headers = {
-            "X-RapidAPI-Key": api_key,
-            "X-RapidAPI-Host": "youtube138.p.rapidapi.com"
-        }
     
     async def test_api_key(self) -> bool:
-        """Test if the API key is valid by making a simple request."""
+        """Test if the YouTube API key is valid."""
         try:
             async with httpx.AsyncClient() as client:
-                # Test with a simple search query
                 response = await client.get(
-                    f"{self.BASE_URL}/search/",
-                    headers=self.headers,
-                    params={"q": "despacito", "hl": "en", "gl": "US"},
+                    f"{self.BASE_URL}/videos",
+                    params={
+                        "part": "snippet",
+                        "chart": "mostPopular",
+                        "regionCode": "US",
+                        "maxResults": 1,
+                        "key": self.api_key
+                    },
                     timeout=10.0
                 )
                 return response.status_code == 200
         except Exception as e:
-            print(f"API key test failed: {e}")
+            print(f"YouTube API key test failed: {e}")
             return False
     
     async def ingest_trending_videos(self, country: str = "US", max_results: int = 50) -> List[Dict[str, Any]]:
         """
-        Fetch trending videos by searching for popular content.
+        Fetch trending/most-popular videos using chart=mostPopular.
+        Costs only 1 quota unit per call.
         
         Args:
-            country: ISO 3166-1 alpha-2 country code (e.g., 'US', 'GB')
-            max_results: Maximum number of videos to fetch
+            country: ISO 3166-1 alpha-2 country code
+            max_results: Maximum number of videos (max 50 per page)
         
         Returns:
             List of video data dictionaries
         """
         try:
+            all_videos = []
+            page_token = None
+            remaining = min(max_results, 200)
+            
             async with httpx.AsyncClient() as client:
-                # Search for trending/popular videos
-                response = await client.get(
-                    f"{self.BASE_URL}/search/",
-                    headers=self.headers,
-                    params={"q": "trending viral popular", "hl": "en", "gl": country},
-                    timeout=30.0
-                )
-                
-                if response.status_code != 200:
-                    print(f"RapidAPI error: {response.status_code} - {response.text}")
-                    return []
-                
-                data = response.json()
-                
-                # Parse the response and extract videos
-                videos = []
-                if 'contents' in data:
-                    for item in data['contents'][:max_results]:
-                        video_data = await self._parse_search_result(item)
+                while remaining > 0:
+                    per_page = min(remaining, 50)
+                    params = {
+                        "part": "snippet,statistics,contentDetails",
+                        "chart": "mostPopular",
+                        "regionCode": country,
+                        "maxResults": per_page,
+                        "key": self.api_key
+                    }
+                    if page_token:
+                        params["pageToken"] = page_token
+                    
+                    response = await client.get(
+                        f"{self.BASE_URL}/videos",
+                        params=params,
+                        timeout=30.0
+                    )
+                    
+                    if response.status_code != 200:
+                        print(f"YouTube API error: {response.status_code} - {response.text[:200]}")
+                        break
+                    
+                    data = response.json()
+                    
+                    for item in data.get("items", []):
+                        video_data = self._parse_video_item(item)
                         if video_data:
-                            videos.append(video_data)
-                
-                # Store in database
-                if videos:
-                    await self._store_videos(videos)
-                
-                return videos
+                            all_videos.append(video_data)
+                    
+                    page_token = data.get("nextPageToken")
+                    if not page_token:
+                        break
+                    remaining -= per_page
+            
+            # Store in database
+            if all_videos:
+                await self._store_videos(all_videos)
+            
+            return all_videos
         
         except Exception as e:
-            print(f"RapidAPI error: {e}")
+            print(f"YouTube trending error: {e}")
             import traceback
             traceback.print_exc()
             return []
     
-    async def search_videos(self, query: str = "trending", max_results: int = 50) -> List[Dict[str, Any]]:
+    async def search_videos(self, query: str = "trending", max_results: int = 25) -> List[Dict[str, Any]]:
         """
-        Search for videos using RapidAPI YouTube.
+        Search for videos. Costs 100 quota units per call, so use sparingly.
         
         Args:
             query: Search query
-            max_results: Maximum number of videos to fetch
+            max_results: Maximum number of videos
         
         Returns:
             List of video data dictionaries
         """
         try:
             async with httpx.AsyncClient() as client:
-                response = await client.get(
-                    f"{self.BASE_URL}/search/",
-                    headers=self.headers,
-                    params={"q": query, "hl": "en", "gl": "US"},
+                # Step 1: Search for video IDs (100 units)
+                search_params = {
+                    "part": "id",
+                    "q": query,
+                    "type": "video",
+                    "order": "viewCount",
+                    "publishedAfter": (datetime.utcnow() - timedelta(hours=settings.search_published_after_hours)).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                    "maxResults": min(max_results, 50),
+                    "key": self.api_key
+                }
+                
+                search_response = await client.get(
+                    f"{self.BASE_URL}/search",
+                    params=search_params,
                     timeout=30.0
                 )
                 
-                if response.status_code != 200:
-                    print(f"RapidAPI search error: {response.status_code} - {response.text}")
+                if search_response.status_code != 200:
+                    print(f"YouTube search error: {search_response.status_code} - {search_response.text[:200]}")
                     return []
                 
-                data = response.json()
+                search_data = search_response.json()
+                video_ids = [
+                    item["id"]["videoId"]
+                    for item in search_data.get("items", [])
+                    if item.get("id", {}).get("videoId")
+                ]
                 
-                # Parse the response and extract videos
-                videos = []
-                if 'contents' in data:
-                    for item in data['contents'][:max_results]:
-                        video_data = await self._parse_search_result(item)
-                        if video_data:
-                            videos.append(video_data)
-                
-                # Store in database
-                if videos:
-                    await self._store_videos(videos)
-                
-                return videos
-        
-        except Exception as e:
-            print(f"RapidAPI search error: {e}")
-            import traceback
-            traceback.print_exc()
-            return []
-    
-    async def get_video_details(self, video_id: str) -> Optional[Dict[str, Any]]:
-        """
-        Get detailed information for a specific video.
-        
-        Args:
-            video_id: YouTube video ID
-        
-        Returns:
-            Video data dictionary or None
-        """
-        try:
-            async with httpx.AsyncClient() as client:
-                response = await client.get(
-                    f"{self.BASE_URL}/video/details",
-                    headers=self.headers,
-                    params={"id": video_id},
-                    timeout=30.0
-                )
-                
-                if response.status_code != 200:
-                    return None
-                
-                data = response.json()
-                return await self._parse_video_item(data)
-        
-        except Exception as e:
-            print(f"Error fetching video details for {video_id}: {e}")
-            return None
-    
-    async def get_channel_videos(self, channel_id: str, max_results: int = 50) -> List[Dict[str, Any]]:
-        """
-        Get videos from a specific channel.
-        
-        Args:
-            channel_id: YouTube channel ID
-            max_results: Maximum number of videos to fetch
-        
-        Returns:
-            List of video data dictionaries
-        """
-        try:
-            async with httpx.AsyncClient() as client:
-                response = await client.post(
-                    f"{self.BASE_URL}/channel/videos",
-                    headers=self.headers,
-                    json={"channelId": channel_id},
-                    timeout=30.0
-                )
-                
-                if response.status_code != 200:
-                    print(f"Channel videos error: {response.status_code}")
+                if not video_ids:
                     return []
                 
-                data = response.json()
+                # Step 2: Get full details for those video IDs (1 unit)
+                details_response = await client.get(
+                    f"{self.BASE_URL}/videos",
+                    params={
+                        "part": "snippet,statistics,contentDetails",
+                        "id": ",".join(video_ids),
+                        "key": self.api_key
+                    },
+                    timeout=30.0
+                )
                 
-                # Extract video IDs
-                video_ids = []
-                if 'contents' in data:
-                    for item in data['contents'][:max_results]:
-                        if item.get('type') == 'video' and 'video' in item:
-                            video_id = item['video'].get('videoId')
-                            if video_id:
-                                video_ids.append(video_id)
+                if details_response.status_code != 200:
+                    print(f"YouTube details error: {details_response.status_code}")
+                    return []
                 
-                # Fetch details for each video
+                details_data = details_response.json()
+                
                 videos = []
-                for video_id in video_ids:
-                    video_data = await self.get_video_details(video_id)
+                for item in details_data.get("items", []):
+                    video_data = self._parse_video_item(item)
                     if video_data:
                         videos.append(video_data)
                 
                 # Store in database
-                await self._store_videos(videos)
+                if videos:
+                    await self._store_videos(videos)
                 
                 return videos
         
         except Exception as e:
-            print(f"Channel videos error: {e}")
+            print(f"YouTube search error: {e}")
+            import traceback
+            traceback.print_exc()
             return []
     
-    async def _parse_search_result(self, item: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-        """Parse search result item from RapidAPI YouTube138 API."""
+    def _parse_video_item(self, item: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """Parse YouTube Data API v3 video item into our schema."""
         try:
-            # Check if this is a video item
-            if item.get('type') != 'video':
-                return None
-            
-            video = item.get('video', {})
-            if not video:
-                return None
-            
-            # Extract video ID
-            video_id = video.get('videoId')
+            video_id = item.get("id")
+            if isinstance(video_id, dict):
+                video_id = video_id.get("videoId")
             if not video_id:
                 return None
             
-            # Extract basic info
-            title = video.get('title', '')
+            snippet = item.get("snippet", {})
+            statistics = item.get("statistics", {})
+            content_details = item.get("contentDetails", {})
             
-            # Channel info from author object
-            author = video.get('author', {})
-            channel_id = author.get('channelId', '')
-            channel_title = author.get('title', '')
+            # Title & description
+            title = snippet.get("title", "")
+            description = snippet.get("description", "")
             
-            # Published date - convert relative time to approximate ISO format
-            published_time_text = video.get('publishedTimeText', '')
-            published_at = self._parse_published_time(published_time_text)
+            # Channel info
+            channel_id = snippet.get("channelId", "")
+            channel_title = snippet.get("channelTitle", "")
             
-            # Thumbnail
-            thumbnails = video.get('thumbnails', [])
-            thumbnail_url = ''
-            if thumbnails and len(thumbnails) > 0:
-                # Get the highest quality thumbnail
-                thumbnail_url = thumbnails[-1].get('url', '')
+            # Published date (ISO 8601)
+            published_at = snippet.get("publishedAt", datetime.utcnow().isoformat())
             
-            # Duration - convert from lengthSeconds or lengthText
-            length_seconds = video.get('lengthSeconds', 0)
-            if length_seconds:
-                minutes = length_seconds // 60
-                seconds = length_seconds % 60
-                duration = f"{minutes}:{seconds:02d}"
-            else:
-                duration = video.get('lengthText', '0:00')
+            # Thumbnail (prefer high > medium > default)
+            thumbnails = snippet.get("thumbnails", {})
+            thumbnail_url = ""
+            for quality in ["high", "medium", "default"]:
+                if quality in thumbnails:
+                    thumbnail_url = thumbnails[quality].get("url", "")
+                    break
             
-            # View count from stats object
-            stats = video.get('stats', {})
-            view_count = stats.get('views', 0)
+            # Duration (ISO 8601 duration like PT4M13S)
+            duration_iso = content_details.get("duration", "PT0S")
+            duration = self._parse_iso_duration(duration_iso)
             
-            # Description snippet
-            description = video.get('descriptionSnippet', '')
+            # Category
+            category_id = snippet.get("categoryId", "0")
             
-            # Category (not provided by this API, default to 0)
-            category_id = '0'
+            # Tags
+            tags = snippet.get("tags", [])
+            tags_json = json.dumps(tags[:20]) if tags else "[]"
             
-            # Tags/keywords (not in search results)
-            tags_json = '[]'
-            
-            # Likes and comments (not in search results)
-            like_count = 0
-            comment_count = 0
+            # Statistics (exact counts from the API)
+            view_count = int(statistics.get("viewCount", 0))
+            like_count = int(statistics.get("likeCount", 0))
+            comment_count = int(statistics.get("commentCount", 0))
             
             return {
-                'video_id': video_id,
-                'title': title,
-                'description': description,
-                'channel_id': channel_id,
-                'channel_title': channel_title,
-                'published_at': published_at,
-                'thumbnail_url': thumbnail_url,
-                'duration': duration,
-                'category_id': category_id,
-                'tags': tags_json,
-                'view_count': view_count,
-                'like_count': like_count,
-                'comment_count': comment_count,
-                'ingested_at': datetime.utcnow().isoformat(),
-                'last_updated': datetime.utcnow().isoformat()
+                "video_id": video_id,
+                "title": title,
+                "description": description[:1000],
+                "channel_id": channel_id,
+                "channel_title": channel_title,
+                "published_at": published_at,
+                "thumbnail_url": thumbnail_url,
+                "duration": duration,
+                "category_id": category_id,
+                "tags": tags_json,
+                "view_count": view_count,
+                "like_count": like_count,
+                "comment_count": comment_count,
+                "ingested_at": datetime.utcnow().isoformat(),
+                "last_updated": datetime.utcnow().isoformat()
             }
         
         except Exception as e:
-            print(f"Error parsing search result: {e}")
+            print(f"Error parsing YouTube video item: {e}")
             import traceback
             traceback.print_exc()
             return None
     
-    def _parse_published_time(self, time_text: str) -> str:
-        """Convert relative time text to approximate ISO format."""
+    @staticmethod
+    def _parse_iso_duration(iso_duration: str) -> str:
+        """Convert ISO 8601 duration (PT4M13S) to human-readable (4:13)."""
         try:
-            if not time_text:
-                return datetime.utcnow().isoformat()
-            
-            # Parse relative time like "2 hours ago", "3 days ago", etc.
-            time_text = time_text.lower()
-            now = datetime.utcnow()
-            
-            if 'hour' in time_text or 'hr' in time_text:
-                hours = int(''.join(filter(str.isdigit, time_text)) or '1')
-                published = now - timedelta(hours=hours)
-            elif 'day' in time_text:
-                days = int(''.join(filter(str.isdigit, time_text)) or '1')
-                published = now - timedelta(days=days)
-            elif 'week' in time_text:
-                weeks = int(''.join(filter(str.isdigit, time_text)) or '1')
-                published = now - timedelta(weeks=weeks)
-            elif 'month' in time_text:
-                months = int(''.join(filter(str.isdigit, time_text)) or '1')
-                published = now - timedelta(days=months * 30)
-            elif 'year' in time_text:
-                years = int(''.join(filter(str.isdigit, time_text)) or '1')
-                published = now - timedelta(days=years * 365)
-            else:
-                published = now
-            
-            return published.isoformat()
-        
+            match = re.match(r"PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?", iso_duration)
+            if not match:
+                return "0:00"
+            hours = int(match.group(1) or 0)
+            minutes = int(match.group(2) or 0)
+            seconds = int(match.group(3) or 0)
+            if hours > 0:
+                return f"{hours}:{minutes:02d}:{seconds:02d}"
+            return f"{minutes}:{seconds:02d}"
         except Exception:
-            return datetime.utcnow().isoformat()
-    
-    async def _parse_video_item(self, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-        """Parse RapidAPI video response into our schema."""
-        try:
-            # Extract video ID
-            video_id = data.get('id') or data.get('videoId')
-            if not video_id:
-                return None
-            
-            # Extract basic info
-            title = data.get('title', '')
-            description = data.get('description', '')
-            
-            # Channel info
-            channel_id = ''
-            channel_title = ''
-            if 'author' in data:
-                channel_id = data['author'].get('channelId', '')
-                channel_title = data['author'].get('title', '')
-            
-            # Published date
-            published_at = data.get('publishedTimeText', '')
-            if not published_at:
-                published_at = datetime.utcnow().isoformat()
-            else:
-                # Convert relative time to ISO format (approximate)
-                published_at = datetime.utcnow().isoformat()
-            
-            # Thumbnail
-            thumbnails = data.get('thumbnails', [])
-            thumbnail_url = ''
-            if thumbnails and len(thumbnails) > 0:
-                thumbnail_url = thumbnails[-1].get('url', '')
-            
-            # Duration
-            duration = data.get('lengthText', '')
-            
-            # Category (not provided by this API, default to 0)
-            category_id = '0'
-            
-            # Tags/keywords
-            keywords = data.get('keywords', [])
-            tags_json = json.dumps(keywords) if keywords else '[]'
-            
-            # Statistics
-            view_count = 0
-            if 'stats' in data and 'views' in data['stats']:
-                view_text = data['stats']['views']
-                # Parse view count (e.g., "1.2M views" -> 1200000)
-                view_count = self._parse_view_count(view_text)
-            
-            # Likes and comments (not always available)
-            like_count = 0
-            comment_count = 0
-            
-            return {
-                'video_id': video_id,
-                'title': title,
-                'description': description,
-                'channel_id': channel_id,
-                'channel_title': channel_title,
-                'published_at': published_at,
-                'thumbnail_url': thumbnail_url,
-                'duration': duration,
-                'category_id': category_id,
-                'tags': tags_json,
-                'view_count': view_count,
-                'like_count': like_count,
-                'comment_count': comment_count,
-                'ingested_at': datetime.utcnow().isoformat(),
-                'last_updated': datetime.utcnow().isoformat()
-            }
-        
-        except Exception as e:
-            print(f"Error parsing video item: {e}")
-            return None
-    
-    def _parse_view_count(self, view_text: str) -> int:
-        """Parse view count from text like '1.2M views' to integer."""
-        try:
-            if not view_text:
-                return 0
-            
-            # Remove 'views' and whitespace
-            view_text = view_text.lower().replace('views', '').replace('view', '').strip()
-            
-            # Handle K, M, B suffixes
-            multiplier = 1
-            if 'k' in view_text:
-                multiplier = 1000
-                view_text = view_text.replace('k', '')
-            elif 'm' in view_text:
-                multiplier = 1000000
-                view_text = view_text.replace('m', '')
-            elif 'b' in view_text:
-                multiplier = 1000000000
-                view_text = view_text.replace('b', '')
-            
-            # Convert to float then int
-            number = float(view_text)
-            return int(number * multiplier)
-        
-        except:
-            return 0
+            return "0:00"
     
     async def _store_videos(self, videos: List[Dict[str, Any]]):
         """Store videos in database (upsert)."""
@@ -441,7 +281,7 @@ class RapidAPIYouTubeIngester:
             # Check if video exists
             existing = await db.fetch_one(
                 "SELECT video_id, view_count FROM videos WHERE video_id = ?",
-                (video['video_id'],)
+                (video["video_id"],)
             )
             
             if existing:
@@ -456,13 +296,13 @@ class RapidAPIYouTubeIngester:
                         last_updated = ?
                     WHERE video_id = ?
                 """, (
-                    video['title'],
-                    video['description'],
-                    video['view_count'],
-                    video['like_count'],
-                    video['comment_count'],
-                    video['last_updated'],
-                    video['video_id']
+                    video["title"],
+                    video["description"],
+                    video["view_count"],
+                    video["like_count"],
+                    video["comment_count"],
+                    video["last_updated"],
+                    video["video_id"]
                 ))
             else:
                 # Insert new video
@@ -473,54 +313,55 @@ class RapidAPIYouTubeIngester:
                         view_count, like_count, comment_count, ingested_at, last_updated
                     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
-                    video['video_id'],
-                    video['title'],
-                    video['description'],
-                    video['channel_id'],
-                    video['channel_title'],
-                    video['published_at'],
-                    video['thumbnail_url'],
-                    video['duration'],
-                    video['category_id'],
-                    video['tags'],
-                    video['view_count'],
-                    video['like_count'],
-                    video['comment_count'],
-                    video['ingested_at'],
-                    video['last_updated']
+                    video["video_id"],
+                    video["title"],
+                    video["description"],
+                    video["channel_id"],
+                    video["channel_title"],
+                    video["published_at"],
+                    video["thumbnail_url"],
+                    video["duration"],
+                    video["category_id"],
+                    video["tags"],
+                    video["view_count"],
+                    video["like_count"],
+                    video["comment_count"],
+                    video["ingested_at"],
+                    video["last_updated"]
                 ))
 
 
 async def run_ingestion(api_key: Optional[str] = None):
-    """Main ingestion pipeline - fetch trending and search videos."""
+    """Main YouTube ingestion pipeline using YouTube Data API v3."""
+    from config import get_youtube_api_key
     # Use provided API key or fall back to settings
-    api_key = api_key or settings.rapidapi_key
+    api_key = api_key or get_youtube_api_key()
     
     if not api_key:
-        print("❌ No RapidAPI key provided. Please set RAPIDAPI_KEY in settings or provide via UI.")
+        print("❌ No YouTube API key provided. Please set YOUTUBE_API_KEY or provide via UI.")
         return 0
     
-    ingester = RapidAPIYouTubeIngester(api_key)
+    ingester = YouTubeDataAPIIngester(api_key)
     
     # Test API key first
-    print("🔑 Testing RapidAPI key...")
+    print("🔑 Testing YouTube Data API v3 key...")
     if not await ingester.test_api_key():
-        print("❌ Invalid RapidAPI key. Please check your key and try again.")
+        print("❌ Invalid YouTube API key. Please check your key and try again.")
         return 0
     
-    print("✅ RapidAPI key is valid")
-    print("🔄 Starting ingestion...")
+    print("✅ YouTube API key is valid")
+    print("🔄 Starting YouTube ingestion...")
     
-    # Fetch trending videos via search
-    print(f"📊 Searching for trending videos...")
-    trending = await ingester.search_videos(
-        query="trending viral popular",
+    # Fetch trending videos (costs only 1 quota unit per page!)
+    print("📊 Fetching YouTube Trending (mostPopular)...")
+    trending = await ingester.ingest_trending_videos(
+        country=settings.trending_region_code,
         max_results=settings.max_trending_results
     )
     print(f"✅ Ingested {len(trending)} trending videos")
     
-    # Fetch more videos with different queries
-    print(f"🔍 Searching for recent popular videos...")
+    # Search for category-specific popular videos (100 units each)
+    print("🔍 Searching for category-specific popular videos...")
     search_queries = ["tech", "gaming", "music", "news"]
     search_videos = []
     
@@ -534,6 +375,6 @@ async def run_ingestion(api_key: Optional[str] = None):
     print(f"✅ Ingested {len(search_videos)} search results")
     
     total = len(trending) + len(search_videos)
-    print(f"🎉 Total videos ingested: {total}")
+    print(f"🎉 Total YouTube videos ingested: {total}")
     
     return total
