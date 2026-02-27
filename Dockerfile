@@ -8,9 +8,10 @@ COPY package.json package-lock.json ./
 RUN npm ci
 
 # Copy frontend source files
-COPY index.html index.tsx index.css App.tsx types.ts mockData.ts tsconfig.json vite.config.ts ./
+COPY index.html index.tsx index.css App.tsx LanguageContext.tsx types.ts mockData.ts tsconfig.json vite.config.ts ./
 COPY components/ ./components/
 COPY services/ ./services/
+COPY locales/ ./locales/
 
 # Build with empty API URL so frontend uses same-origin requests
 ENV VITE_API_URL=""
