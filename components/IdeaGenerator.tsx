@@ -19,7 +19,6 @@ export const IdeaGenerator: React.FC<IdeaGeneratorProps> = ({ ideas, trendName }
     saveIdea(idea, trendName);
     setSavedIds(prev => new Set(prev).add(index));
 
-    // Reset saved state after 2 seconds
     setTimeout(() => {
       setSavedIds(prev => {
         const newSet = new Set(prev);
@@ -37,10 +36,10 @@ export const IdeaGenerator: React.FC<IdeaGeneratorProps> = ({ ideas, trendName }
   };
 
   return (
-    <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="mt-6 sm:mt-8 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
       {ideas.map((idea, index) => (
-        <div key={index} className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 flex flex-col hover:border-zinc-700 transition-colors">
-          <div className="flex items-center justify-between mb-4">
+        <div key={index} className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 sm:p-5 flex flex-col hover:border-zinc-700 transition-colors">
+          <div className="flex items-center justify-between mb-3 sm:mb-4">
             <span className={`text-xs px-2 py-1 rounded-md font-medium
               ${idea.format === 'Short' ? 'bg-pink-500/10 text-pink-400' :
                 idea.format === 'Long-form' ? 'bg-blue-500/10 text-blue-400' : 'bg-amber-500/10 text-amber-400'
@@ -53,7 +52,7 @@ export const IdeaGenerator: React.FC<IdeaGeneratorProps> = ({ ideas, trendName }
             </div>
           </div>
 
-          <h4 className="font-bold text-lg mb-3 leading-snug text-zinc-100">
+          <h4 className="font-bold text-base sm:text-lg mb-3 leading-snug text-zinc-100">
             {idea.title}
           </h4>
 
@@ -76,7 +75,7 @@ export const IdeaGenerator: React.FC<IdeaGeneratorProps> = ({ ideas, trendName }
 
           <button
             onClick={() => handleSave(idea, index)}
-            className="mt-4 w-full py-2 bg-zinc-100 text-zinc-950 rounded-lg text-sm font-bold hover:bg-white transition-colors flex items-center justify-center gap-2"
+            className="mt-4 w-full py-2.5 bg-zinc-100 text-zinc-950 rounded-lg text-sm font-bold hover:bg-white transition-colors flex items-center justify-center gap-2"
           >
             {savedIds.has(index) ? (
               <>

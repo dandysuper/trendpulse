@@ -117,10 +117,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
   const hasAnyKey = hasYoutubeKey || hasRapidapiKey;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm">
+      <div className="bg-zinc-900 border border-zinc-800 rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-2xl sm:mx-4 max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="p-6 border-b border-zinc-800 flex items-center justify-between">
+        <div className="p-4 sm:p-6 border-b border-zinc-800 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
               <Key className="w-5 h-5 text-white" />
@@ -139,7 +139,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
         </div>
 
         {/* Content */}
-        <div className="p-6 space-y-6">
+        <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
           {/* Language Switcher */}
           <div className="bg-zinc-800/50 border border-zinc-700 rounded-xl p-4">
             <div className="flex items-center gap-2 mb-3">
@@ -150,8 +150,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
               <button
                 onClick={() => setLang('ru')}
                 className={`flex-1 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${lang === 'ru'
-                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
-                    : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-white'
+                  ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
+                  : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-white'
                   }`}
               >
                 🇷🇺 {t.settings.languageRussian}
@@ -159,8 +159,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
               <button
                 onClick={() => setLang('en')}
                 className={`flex-1 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${lang === 'en'
-                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
-                    : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-white'
+                  ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
+                  : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-white'
                   }`}
               >
                 🇬🇧 {t.settings.languageEnglish}
@@ -177,8 +177,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
                 <div className="flex items-center justify-between">
                   <span className="text-emerald-400/80">{t.settings.youtubeDataAPI}</span>
                   <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${youtubeIsDefault
-                      ? 'bg-blue-500/20 text-blue-300'
-                      : 'bg-emerald-500/20 text-emerald-300'
+                    ? 'bg-blue-500/20 text-blue-300'
+                    : 'bg-emerald-500/20 text-emerald-300'
                     }`}>
                     {youtubeIsDefault ? t.settings.builtIn : t.settings.custom}
                   </span>
@@ -186,8 +186,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
                 <div className="flex items-center justify-between">
                   <span className="text-emerald-400/80">{t.settings.tiktokScraptik}</span>
                   <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${rapidapiIsDefault
-                      ? 'bg-blue-500/20 text-blue-300'
-                      : 'bg-emerald-500/20 text-emerald-300'
+                    ? 'bg-blue-500/20 text-blue-300'
+                    : 'bg-emerald-500/20 text-emerald-300'
                     }`}>
                     {rapidapiIsDefault ? t.settings.builtIn : t.settings.custom}
                   </span>
@@ -222,10 +222,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
           {message && (
             <div
               className={`rounded-lg p-4 flex items-start gap-3 ${validationStatus === 'success'
-                  ? 'bg-emerald-500/10 border border-emerald-500/20'
-                  : validationStatus === 'error'
-                    ? 'bg-red-500/10 border border-red-500/20'
-                    : 'bg-blue-500/10 border border-blue-500/20'
+                ? 'bg-emerald-500/10 border border-emerald-500/20'
+                : validationStatus === 'error'
+                  ? 'bg-red-500/10 border border-red-500/20'
+                  : 'bg-blue-500/10 border border-blue-500/20'
                 }`}
             >
               {validationStatus === 'success' && <Check className="w-5 h-5 text-emerald-400 flex-shrink-0" />}
@@ -233,10 +233,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
               {validationStatus === 'idle' && <Loader2 className="w-5 h-5 text-blue-400 flex-shrink-0 animate-spin" />}
               <p
                 className={`text-sm ${validationStatus === 'success'
-                    ? 'text-emerald-300'
-                    : validationStatus === 'error'
-                      ? 'text-red-300'
-                      : 'text-blue-300'
+                  ? 'text-emerald-300'
+                  : validationStatus === 'error'
+                    ? 'text-red-300'
+                    : 'text-blue-300'
                   }`}
               >
                 {message}

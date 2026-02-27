@@ -28,7 +28,7 @@ const App: React.FC = () => {
   // Check backend health on mount, retry if pipeline is still running
   useEffect(() => {
     let retryCount = 0;
-    const maxRetries = 8; // ~2 minutes of retrying
+    const maxRetries = 8;
     let retryTimer: ReturnType<typeof setTimeout>;
 
     const tryLoadData = async () => {
@@ -53,13 +53,12 @@ const App: React.FC = () => {
           setUseRealData(true);
           setError(null);
           setIsLoading(false);
-          return; // Success — stop retrying
+          return;
         }
       } catch (err) {
         console.log('Data not ready yet, will retry...');
       }
 
-      // No clusters yet — pipeline may still be running, retry
       if (retryCount < maxRetries) {
         retryCount++;
         setError(t.dashboard.loadingDataPipeline);
@@ -109,7 +108,6 @@ const App: React.FC = () => {
     setError(null);
 
     try {
-      // Trigger backend data refresh
       const response = await fetch(`${API_BASE_URL}/api/refresh`, {
         method: 'POST',
         headers: {
@@ -125,17 +123,13 @@ const App: React.FC = () => {
       const result = await response.json();
       console.log('Refresh result:', result);
 
-      // Show success message
       if (result.status === 'success') {
         setError(null);
       } else if (result.status === 'warning') {
         setError(result.message);
       }
 
-      // Wait a moment for data to be processed
       await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Reload the data
       await loadRealData();
 
     } catch (err: any) {
@@ -146,10 +140,15 @@ const App: React.FC = () => {
     }
   };
 
+  const handleNavClick = (page: Page) => {
+    setCurrentPage(page);
+    setIsMobileMenuOpen(false);
+  };
+
   return (
     <div className="flex h-screen w-full bg-zinc-950 text-zinc-100 overflow-hidden font-sans">
-      {/* Sidebar - Desktop */}
-      <aside className="hidden md:flex flex-col w-64 border-r border-zinc-800 bg-zinc-900/50 backdrop-blur-xl">
+      {/* Sidebar - Desktop (hidden below lg) */}
+      <aside className="hidden lg:flex flex-col w-64 border-r border-zinc-800 bg-zinc-900/50 backdrop-blur-xl flex-shrink-0">
         <div className="p-6 border-b border-zinc-800 flex items-center gap-3">
           <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/20">
             <Zap className="w-5 h-5 text-white" fill="currentColor" />
@@ -159,7 +158,7 @@ const App: React.FC = () => {
 
         <nav className="flex-1 p-4 space-y-1">
           <button
-            onClick={() => setCurrentPage('dashboard')}
+            onClick={() => handleNavClick('dashboard')}
             className={`flex items-center gap-3 w-full px-3 py-2 text-sm font-medium rounded-lg transition-colors ${currentPage === 'dashboard'
               ? 'bg-zinc-800 text-white'
               : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'
@@ -169,7 +168,7 @@ const App: React.FC = () => {
             {t.nav.dashboard}
           </button>
           <button
-            onClick={() => setCurrentPage('saved')}
+            onClick={() => handleNavClick('saved')}
             className={`flex items-center gap-3 w-full px-3 py-2 text-sm font-medium rounded-lg transition-colors ${currentPage === 'saved'
               ? 'bg-zinc-800 text-white'
               : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'
@@ -179,7 +178,7 @@ const App: React.FC = () => {
             {t.nav.savedIdeas}
           </button>
           <button
-            onClick={() => setCurrentPage('analytics')}
+            onClick={() => handleNavClick('analytics')}
             className={`flex items-center gap-3 w-full px-3 py-2 text-sm font-medium rounded-lg transition-colors ${currentPage === 'analytics'
               ? 'bg-zinc-800 text-white'
               : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'
@@ -214,21 +213,90 @@ const App: React.FC = () => {
         </div>
       </aside>
 
-      {/* Mobile Header */}
-      <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-zinc-900 border-b border-zinc-800 flex items-center justify-between px-4 z-50">
+      {/* Mobile / Tablet Header */}
+      <div className="lg:hidden fixed top-0 left-0 right-0 h-14 bg-zinc-900/95 backdrop-blur-md border-b border-zinc-800 flex items-center justify-between px-4 z-50">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
             <Zap className="w-5 h-5 text-white" fill="currentColor" />
           </div>
           <span className="font-bold text-lg">{t.appName}</span>
         </div>
-        <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="p-2 text-zinc-400">
-          {isMobileMenuOpen ? <X /> : <Menu />}
+        <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="p-2 text-zinc-400 hover:text-white transition-colors">
+          {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
         </button>
       </div>
 
+      {/* Mobile / Tablet Slide-over Nav */}
+      {isMobileMenuOpen && (
+        <div className="lg:hidden fixed inset-0 z-40" onClick={() => setIsMobileMenuOpen(false)}>
+          {/* Backdrop */}
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+          {/* Drawer */}
+          <div
+            className="absolute top-14 left-0 w-72 max-w-[80vw] bottom-0 bg-zinc-900 border-r border-zinc-800 flex flex-col animate-in slide-in-from-left duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <nav className="flex-1 p-4 space-y-1">
+              <button
+                onClick={() => handleNavClick('dashboard')}
+                className={`flex items-center gap-3 w-full px-3 py-3 text-sm font-medium rounded-lg transition-colors ${currentPage === 'dashboard'
+                  ? 'bg-zinc-800 text-white'
+                  : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'
+                  }`}
+              >
+                <LayoutDashboard className="w-5 h-5" />
+                {t.nav.dashboard}
+              </button>
+              <button
+                onClick={() => handleNavClick('saved')}
+                className={`flex items-center gap-3 w-full px-3 py-3 text-sm font-medium rounded-lg transition-colors ${currentPage === 'saved'
+                  ? 'bg-zinc-800 text-white'
+                  : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'
+                  }`}
+              >
+                <FileVideo className="w-5 h-5" />
+                {t.nav.savedIdeas}
+              </button>
+              <button
+                onClick={() => handleNavClick('analytics')}
+                className={`flex items-center gap-3 w-full px-3 py-3 text-sm font-medium rounded-lg transition-colors ${currentPage === 'analytics'
+                  ? 'bg-zinc-800 text-white'
+                  : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'
+                  }`}
+              >
+                <BarChart3 className="w-5 h-5" />
+                {t.nav.analytics}
+              </button>
+            </nav>
+
+            {/* Backend Status */}
+            <div className="px-4 pb-2">
+              <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs ${backendHealthy
+                ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                }`}>
+                <div className={`w-2 h-2 rounded-full ${backendHealthy ? 'bg-emerald-400' : 'bg-amber-400'} animate-pulse`} />
+                <span className="font-medium">
+                  {backendHealthy ? t.status.backendConnected : t.status.usingMockData}
+                </span>
+              </div>
+            </div>
+
+            <div className="p-4 border-t border-zinc-800">
+              <button
+                onClick={() => { setIsSettingsOpen(true); setIsMobileMenuOpen(false); }}
+                className="flex items-center gap-3 w-full px-3 py-3 text-sm font-medium rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800/50 transition-colors"
+              >
+                <Settings className="w-5 h-5" />
+                {t.nav.settings}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Main Content */}
-      <main className="flex-1 flex flex-col md:flex-row h-full overflow-hidden relative pt-16 md:pt-0">
+      <main className="flex-1 flex flex-col lg:flex-row h-full overflow-hidden relative pt-14 lg:pt-0 min-w-0">
 
         {/* Show different pages based on currentPage */}
         {currentPage === 'saved' ? (
@@ -237,12 +305,8 @@ const App: React.FC = () => {
           <AnalyticsPage trends={trends} />
         ) : (
           <>
-            {/* Trend List Column */}
-            <div className={`
-              absolute md:relative inset-0 z-40 bg-zinc-950 md:bg-transparent md:w-80 border-r border-zinc-800 flex flex-col
-              transition-transform duration-300 ease-in-out
-              ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
-            `}>
+            {/* Trend List Column — hidden on mobile, shown as sidebar on md+  */}
+            <div className="hidden md:flex flex-col w-72 lg:w-80 border-r border-zinc-800 flex-shrink-0">
               <div className="p-4 border-b border-zinc-800 flex items-center justify-between">
                 <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider">
                   {useRealData ? t.dashboard.liveClusters : t.dashboard.activeClusters}
@@ -282,15 +346,32 @@ const App: React.FC = () => {
                     selectedId={selectedTrend.id}
                     onSelect={(trend) => {
                       setSelectedTrend(trend);
-                      setIsMobileMenuOpen(false);
                     }}
                   />
                 </div>
               )}
             </div>
 
+            {/* Mobile: Horizontal scrollable trend pills */}
+            <div className="md:hidden flex-shrink-0 border-b border-zinc-800 overflow-x-auto">
+              <div className="flex gap-2 p-3 min-w-max">
+                {trends.map(trend => (
+                  <button
+                    key={trend.id}
+                    onClick={() => setSelectedTrend(trend)}
+                    className={`flex-shrink-0 px-3 py-2 rounded-lg text-xs font-medium transition-colors whitespace-nowrap ${trend.id === selectedTrend.id
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
+                      }`}
+                  >
+                    {trend.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* Trend Detail Area */}
-            <div className="flex-1 overflow-y-auto bg-zinc-950/50 scroll-smooth">
+            <div className="flex-1 overflow-y-auto bg-zinc-950/50 scroll-smooth min-w-0">
               <TrendDetail trend={selectedTrend} />
             </div>
           </>
@@ -303,7 +384,6 @@ const App: React.FC = () => {
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
         onApiKeySet={() => {
-          // Refresh data after API key is set
           if (backendHealthy) {
             loadRealData();
           }

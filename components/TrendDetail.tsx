@@ -25,7 +25,6 @@ export const TrendDetail: React.FC<TrendDetailProps> = ({ trend }) => {
   const [isGeneratingIdeas, setIsGeneratingIdeas] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Reset state when trend changes
   useEffect(() => {
     setInsight(null);
     setIdeas([]);
@@ -59,21 +58,21 @@ export const TrendDetail: React.FC<TrendDetailProps> = ({ trend }) => {
   };
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-8">
+    <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-6 sm:space-y-8">
       {/* Header Section */}
-      <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
+      <div className="flex flex-col gap-4">
         <div>
-          <div className="flex items-center gap-3 mb-2">
-            <span className="px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 text-sm font-medium">
+          <div className="flex flex-wrap items-center gap-2 mb-2">
+            <span className="px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 text-xs sm:text-sm font-medium">
               {trend.category}
             </span>
-            <span className="px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-sm font-medium flex items-center gap-1">
+            <span className="px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs sm:text-sm font-medium flex items-center gap-1">
               <BarChart2 className="w-3 h-3" />
               {trend.growthRate}% {t.dashboard.growth}
             </span>
           </div>
-          <h1 className="text-4xl font-bold text-white mb-2 tracking-tight">{trend.name}</h1>
-          <p className="text-zinc-400">{t.trendDetail.totalVolume} {(trend.totalViews / 1000000).toFixed(1)}M+</p>
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-2 tracking-tight break-words">{trend.name}</h1>
+          <p className="text-sm sm:text-base text-zinc-400">{t.trendDetail.totalVolume} {(trend.totalViews / 1000000).toFixed(1)}M+</p>
         </div>
 
         <div className="flex gap-3">
@@ -81,7 +80,7 @@ export const TrendDetail: React.FC<TrendDetailProps> = ({ trend }) => {
             <button
               onClick={handleAnalyze}
               disabled={isAnalyzing}
-              className="bg-white text-zinc-950 hover:bg-zinc-200 disabled:opacity-70 disabled:cursor-not-allowed px-6 py-3 rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-white/10 transition-all"
+              className="bg-white text-zinc-950 hover:bg-zinc-200 disabled:opacity-70 disabled:cursor-not-allowed px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-white/10 transition-all text-sm sm:text-base"
             >
               {isAnalyzing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4 text-blue-600" />}
               {t.trendDetail.analyzeWithAI}
@@ -90,7 +89,7 @@ export const TrendDetail: React.FC<TrendDetailProps> = ({ trend }) => {
             <button
               onClick={handleGenerateIdeas}
               disabled={isGeneratingIdeas}
-              className="bg-blue-600 hover:bg-blue-500 text-white disabled:opacity-70 disabled:cursor-not-allowed px-6 py-3 rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-blue-500/20 transition-all"
+              className="bg-blue-600 hover:bg-blue-500 text-white disabled:opacity-70 disabled:cursor-not-allowed px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-blue-500/20 transition-all text-sm sm:text-base"
             >
               {isGeneratingIdeas ? <Loader2 className="w-4 h-4 animate-spin" /> : <Video className="w-4 h-4" />}
               {t.trendDetail.generateIdeas}
@@ -100,36 +99,36 @@ export const TrendDetail: React.FC<TrendDetailProps> = ({ trend }) => {
       </div>
 
       {/* Main Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
 
         {/* Left Col: Chart & Videos */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-2 space-y-4 sm:space-y-6">
           {/* Chart Card */}
-          <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-6 backdrop-blur-sm">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="font-semibold text-lg">{t.trendDetail.velocityTrack}</h3>
+          <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-4 sm:p-6 backdrop-blur-sm">
+            <div className="flex justify-between items-center mb-4 sm:mb-6">
+              <h3 className="font-semibold text-base sm:text-lg">{t.trendDetail.velocityTrack}</h3>
             </div>
             <TrendChart data={trend.historicalGrowth} />
           </div>
 
           {/* Top Videos List */}
-          <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-6 backdrop-blur-sm">
-            <h3 className="font-semibold text-lg mb-4">{t.trendDetail.topPerformingVideos}</h3>
-            <div className="space-y-3">
+          <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-4 sm:p-6 backdrop-blur-sm">
+            <h3 className="font-semibold text-base sm:text-lg mb-3 sm:mb-4">{t.trendDetail.topPerformingVideos}</h3>
+            <div className="space-y-2 sm:space-y-3">
               {trend.videos.map((video) => (
                 <a
                   key={video.id}
                   href={video.url || '#'}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-4 p-3 hover:bg-zinc-800/50 rounded-xl transition-colors group cursor-pointer"
+                  className="flex items-center gap-3 sm:gap-4 p-2.5 sm:p-3 hover:bg-zinc-800/50 rounded-xl transition-colors group cursor-pointer"
                 >
-                  <div className="w-12 h-12 bg-zinc-800 rounded-lg flex items-center justify-center shrink-0">
-                    <Play className="w-5 h-5 text-zinc-500 group-hover:text-white fill-current" />
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-zinc-800 rounded-lg flex items-center justify-center shrink-0">
+                    <Play className="w-4 h-4 sm:w-5 sm:h-5 text-zinc-500 group-hover:text-white fill-current" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h4 className="font-medium text-zinc-200 truncate group-hover:text-white">{video.title}</h4>
-                    <div className="flex items-center gap-3 text-xs text-zinc-500 mt-1">
+                    <h4 className="font-medium text-zinc-200 truncate group-hover:text-white text-sm">{video.title}</h4>
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-zinc-500 mt-1">
                       <span className="flex items-center gap-1">
                         {video.platform === 'youtube' ? (
                           <Youtube className="w-3 h-3" />
@@ -142,13 +141,13 @@ export const TrendDetail: React.FC<TrendDetailProps> = ({ trend }) => {
                           video.platform === 'tiktok' ? 'TikTok' :
                             video.platform.charAt(0).toUpperCase() + video.platform.slice(1))}
                       </span>
-                      <span>•</span>
+                      <span className="hidden xs:inline">•</span>
                       <span>{(video.views / 1000).toFixed(0)}{t.dashboard.kViews}</span>
-                      <span>•</span>
-                      <span>{video.publishedAt}</span>
+                      <span className="hidden sm:inline">•</span>
+                      <span className="hidden sm:inline">{video.publishedAt}</span>
                     </div>
                   </div>
-                  <ArrowRight className="w-4 h-4 text-zinc-600 group-hover:text-zinc-300 opacity-0 group-hover:opacity-100 transition-all" />
+                  <ArrowRight className="w-4 h-4 text-zinc-600 group-hover:text-zinc-300 opacity-0 group-hover:opacity-100 transition-all hidden sm:block" />
                 </a>
               ))}
             </div>
@@ -158,23 +157,23 @@ export const TrendDetail: React.FC<TrendDetailProps> = ({ trend }) => {
         {/* Right Col: AI Insights */}
         <div className="lg:col-span-1">
           {isAnalyzing && (
-            <div className="h-full min-h-[400px] flex flex-col items-center justify-center bg-zinc-900/30 border border-zinc-800 border-dashed rounded-2xl text-zinc-500 gap-4">
+            <div className="min-h-[250px] lg:min-h-[400px] flex flex-col items-center justify-center bg-zinc-900/30 border border-zinc-800 border-dashed rounded-2xl text-zinc-500 gap-4">
               <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
               <p className="text-sm font-medium animate-pulse">{t.trendDetail.analyzingSemantics}</p>
             </div>
           )}
 
           {!insight && !isAnalyzing && (
-            <div className="h-full min-h-[400px] flex flex-col items-center justify-center bg-zinc-900/30 border border-zinc-800 border-dashed rounded-2xl text-zinc-500 p-8 text-center">
-              <Sparkles className="w-12 h-12 mb-4 opacity-20" />
-              <h4 className="text-lg font-semibold text-zinc-400 mb-2">{t.trendDetail.unlockAIInsights}</h4>
+            <div className="min-h-[200px] lg:min-h-[400px] flex flex-col items-center justify-center bg-zinc-900/30 border border-zinc-800 border-dashed rounded-2xl text-zinc-500 p-6 sm:p-8 text-center">
+              <Sparkles className="w-10 h-10 sm:w-12 sm:h-12 mb-4 opacity-20" />
+              <h4 className="text-base sm:text-lg font-semibold text-zinc-400 mb-2">{t.trendDetail.unlockAIInsights}</h4>
               <p className="text-sm max-w-[250px]">{t.trendDetail.unlockDescription}</p>
             </div>
           )}
 
           {insight && (
             <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-500">
-              <div className="bg-gradient-to-br from-blue-900/20 to-zinc-900 border border-blue-500/20 rounded-2xl p-6">
+              <div className="bg-gradient-to-br from-blue-900/20 to-zinc-900 border border-blue-500/20 rounded-2xl p-4 sm:p-6">
                 <div className="flex items-center gap-2 mb-3 text-blue-400 font-bold text-sm uppercase tracking-wide">
                   <Target className="w-4 h-4" />
                   {t.trendDetail.whyTrending}
@@ -184,12 +183,12 @@ export const TrendDetail: React.FC<TrendDetailProps> = ({ trend }) => {
                 </p>
               </div>
 
-              <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-6">
-                <div className="flex items-center gap-2 mb-4 text-zinc-400 font-bold text-xs uppercase tracking-wide">
+              <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-4 sm:p-6">
+                <div className="flex items-center gap-2 mb-3 sm:mb-4 text-zinc-400 font-bold text-xs uppercase tracking-wide">
                   <span className="w-2 h-2 rounded-full bg-pink-500"></span>
                   {t.trendDetail.winningHooks}
                 </div>
-                <ul className="space-y-3">
+                <ul className="space-y-2 sm:space-y-3">
                   {insight.hooks.map((hook, i) => (
                     <li key={i} className="flex gap-3 text-sm text-zinc-300">
                       <span className="text-zinc-600 font-mono select-none">0{i + 1}</span>
@@ -199,8 +198,8 @@ export const TrendDetail: React.FC<TrendDetailProps> = ({ trend }) => {
                 </ul>
               </div>
 
-              <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-6">
-                <div className="flex items-center gap-2 mb-4 text-zinc-400 font-bold text-xs uppercase tracking-wide">
+              <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-4 sm:p-6">
+                <div className="flex items-center gap-2 mb-3 sm:mb-4 text-zinc-400 font-bold text-xs uppercase tracking-wide">
                   <span className="w-2 h-2 rounded-full bg-amber-500"></span>
                   {t.trendDetail.audience}
                 </div>
@@ -213,14 +212,14 @@ export const TrendDetail: React.FC<TrendDetailProps> = ({ trend }) => {
 
       {/* Generated Ideas Section */}
       {ideas.length > 0 && (
-        <div className="pt-8 border-t border-zinc-800">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 bg-blue-600/20 rounded-full flex items-center justify-center">
-              <Video className="w-5 h-5 text-blue-400" />
+        <div className="pt-6 sm:pt-8 border-t border-zinc-800">
+          <div className="flex items-center gap-3 mb-4 sm:mb-6">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-600/20 rounded-full flex items-center justify-center">
+              <Video className="w-4 h-4 sm:w-5 sm:h-5 text-blue-400" />
             </div>
             <div>
-              <h2 className="text-2xl font-bold">{t.ideas.tailoredContentIdeas}</h2>
-              <p className="text-zinc-400 text-sm">{t.ideas.generatedByAI}</p>
+              <h2 className="text-xl sm:text-2xl font-bold">{t.ideas.tailoredContentIdeas}</h2>
+              <p className="text-zinc-400 text-xs sm:text-sm">{t.ideas.generatedByAI}</p>
             </div>
           </div>
           <IdeaGenerator ideas={ideas} trendName={trend.name} />

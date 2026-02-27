@@ -14,7 +14,6 @@ export const SavedIdeasPage: React.FC = () => {
   const [savedIdeas, setSavedIdeas] = useState<SavedIdea[]>([]);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  // Load saved ideas from localStorage
   useEffect(() => {
     const stored = localStorage.getItem('trendpulse_saved_ideas');
     if (stored) {
@@ -65,17 +64,17 @@ export const SavedIdeasPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100 p-6">
+    <div className="min-h-screen bg-zinc-950 text-zinc-100 p-4 sm:p-6 overflow-y-auto">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
+        <div className="mb-6 sm:mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
             <div>
-              <h1 className="text-3xl font-bold mb-2 flex items-center gap-3">
-                <Bookmark className="w-8 h-8 text-blue-500" />
+              <h1 className="text-2xl sm:text-3xl font-bold mb-1 sm:mb-2 flex items-center gap-3">
+                <Bookmark className="w-6 h-6 sm:w-8 sm:h-8 text-blue-500" />
                 {t.savedIdeas.title}
               </h1>
-              <p className="text-zinc-400">
+              <p className="text-sm text-zinc-400">
                 {t.savedIdeas.ideaCount(savedIdeas.length)}
               </p>
             </div>
@@ -84,14 +83,14 @@ export const SavedIdeasPage: React.FC = () => {
               <div className="flex gap-2">
                 <button
                   onClick={exportIdeas}
-                  className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
+                  className="px-3 sm:px-4 py-2 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
                 >
                   <Download className="w-4 h-4" />
                   {t.savedIdeas.export}
                 </button>
                 <button
                   onClick={clearAll}
-                  className="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
+                  className="px-3 sm:px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
                 >
                   <Trash2 className="w-4 h-4" />
                   {t.savedIdeas.clearAll}
@@ -103,22 +102,22 @@ export const SavedIdeasPage: React.FC = () => {
 
         {/* Ideas Grid */}
         {savedIdeas.length === 0 ? (
-          <div className="text-center py-20">
-            <Bookmark className="w-16 h-16 text-zinc-700 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-zinc-400 mb-2">{t.savedIdeas.noSavedIdeas}</h3>
-            <p className="text-zinc-500">
+          <div className="text-center py-16 sm:py-20">
+            <Bookmark className="w-12 h-12 sm:w-16 sm:h-16 text-zinc-700 mx-auto mb-4" />
+            <h3 className="text-lg sm:text-xl font-semibold text-zinc-400 mb-2">{t.savedIdeas.noSavedIdeas}</h3>
+            <p className="text-sm text-zinc-500 max-w-sm mx-auto">
               {t.savedIdeas.noSavedIdeasDescription}
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {savedIdeas.map((idea) => (
               <div
                 key={idea.id}
-                className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 flex flex-col hover:border-zinc-700 transition-colors"
+                className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 sm:p-5 flex flex-col hover:border-zinc-700 transition-colors"
               >
                 {/* Header */}
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center justify-between mb-3 sm:mb-4">
                   <span className={`text-xs px-2 py-1 rounded-md font-medium
                     ${idea.format === 'Short' ? 'bg-pink-500/10 text-pink-400' :
                       idea.format === 'Long-form' ? 'bg-blue-500/10 text-blue-400' :
@@ -144,7 +143,7 @@ export const SavedIdeasPage: React.FC = () => {
                 </div>
 
                 {/* Title */}
-                <h4 className="font-bold text-lg mb-3 leading-snug text-zinc-100">
+                <h4 className="font-bold text-base sm:text-lg mb-3 leading-snug text-zinc-100">
                   {idea.title}
                 </h4>
 
