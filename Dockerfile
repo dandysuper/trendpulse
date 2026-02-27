@@ -17,5 +17,5 @@ COPY backend/ .
 # Create data directory for SQLite
 RUN mkdir -p /app/data
 
-# Railway injects PORT env var - uvicorn must bind to it
-CMD uvicorn api.server:app --host 0.0.0.0 --port ${PORT:-8000}
+# Railway injects PORT env var - use shell form so variable expansion works
+CMD ["sh", "-c", "uvicorn api.server:app --host 0.0.0.0 --port ${PORT:-8000}"]
