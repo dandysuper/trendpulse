@@ -125,7 +125,10 @@ async def shutdown_event():
 
 @app.get("/")
 async def root():
-    """API root endpoint."""
+    """Serve frontend SPA or API info."""
+    index_file = os.path.join(STATIC_DIR, "index.html")
+    if os.path.isdir(STATIC_DIR) and os.path.isfile(index_file):
+        return FileResponse(index_file)
     return {
         "message": "Video Trends Analyzer API",
         "version": "1.0.0",
