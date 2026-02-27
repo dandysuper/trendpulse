@@ -1,8 +1,12 @@
 """
 REST API endpoints for Video Trends Analyzer.
 """
+import os
+
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from typing import List, Optional
 from pydantic import BaseModel
 from datetime import datetime
@@ -98,6 +102,11 @@ app.add_middleware(
 
 # Include refresh router
 app.include_router(refresh_router, prefix="/api", tags=["refresh"])
+
+# Serve the built React frontend (exists in Docker builds)
+STATIC_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "static")
+if os.path.isdir(STATIC_DIR):
+    app.mount("/assets", StaticFiles(directory=os.path.join(STATIC_DIR, "assets")), name="static-assets")
 
 
 @app.on_event("startup")
@@ -476,6 +485,21 @@ async def run_pipeline_endpoint():
         clusters_created=result.clusters_created,
     )
 
+
+
+# ---- SPA catch-all: serve index.html for any non-API route ----
+@app.get("/{full_path:path}")
+async def serve_spa(full_path: str):
+    """Serve the React SPA for any route not handled by the API."""
+    index_file = os.path.join(STATIC_DIR, "index.html")
+    if os.path.isdir(STATIC_DIR) and os.path.isfile(index_file):
+        # If the exact file exists in static dir, serve it (e.g. favicon, manifest)
+        static_file = os.path.join(STATIC_DIR, full_path)
+        if full_path and os.path.isfile(static_file):
+            return FileResponse(static_file)
+        return FileResponse(index_file)
+    # Fallback when running without frontend build (dev mode)
+    return {"detail": "Frontend not built. Use /docs for API documentation."}
 
 
 if __name__ == "__main__":
