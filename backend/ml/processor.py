@@ -1,8 +1,9 @@
 """
 Machine Learning module for video clustering and deduplication.
-Uses sentence-transformers for embeddings and DBSCAN for clustering.
+Uses TF-IDF vectorization (sklearn) for embeddings and DBSCAN for clustering.
+Lightweight: no PyTorch/sentence-transformers needed.
 """
-from sentence_transformers import SentenceTransformer
+from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.cluster import DBSCAN
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
@@ -17,22 +18,27 @@ class VideoMLProcessor:
     """Handles ML operations: embeddings, clustering, deduplication."""
     
     def __init__(self, model_name: str = None):
-        self.model_name = model_name or settings.embedding_model
-        print(f"🤖 Loading embedding model: {self.model_name}")
-        self.model = SentenceTransformer(self.model_name)
-        print("✅ Model loaded successfully")
+        self.model_name = "tfidf"
+        self.vectorizer = None
+        print("🤖 Using TF-IDF vectorizer (lightweight, no GPU needed)")
     
-    def generate_embedding(self, text: str) -> np.ndarray:
-        """
-        Generate embedding vector for text.
-        
-        Args:
-            text: Input text (title + description)
-        
-        Returns:
-            Embedding vector (numpy array)
-        """
-        return self.model.encode(text, convert_to_numpy=True)
+    def _fit_vectorizer(self, texts: List[str]):
+        """Fit TF-IDF vectorizer on a corpus of texts."""
+        self.vectorizer = TfidfVectorizer(
+            max_features=512,
+            stop_words='english',
+            ngram_range=(1, 2),
+            min_df=1,
+            sublinear_tf=True
+        )
+        self.vectorizer.fit(texts)
+    
+    def generate_embeddings_batch(self, texts: List[str]) -> np.ndarray:
+        """Generate TF-IDF embedding vectors for a list of texts."""
+        if self.vectorizer is None:
+            self._fit_vectorizer(texts)
+        matrix = self.vectorizer.transform(texts)
+        return matrix.toarray().astype(np.float32)
     
     async def generate_embeddings_for_all_videos(self) -> int:
         """
@@ -55,17 +61,18 @@ class VideoMLProcessor:
             print("ℹ️  All videos already have embeddings")
             return 0
         
-        print(f"🔄 Generating embeddings for {len(videos)} videos...")
+        print(f"🔄 Generating TF-IDF embeddings for {len(videos)} videos...")
         
-        for video in videos:
-            # Combine title and description for richer representation
-            description = video['description'] or ""
-            text = f"{video['title']} {description[:500]}"  # Limit description length
-
-            # Generate embedding
-            embedding = self.generate_embedding(text)
-            
-            # Store in database (serialize numpy array)
+        # Build text corpus and fit vectorizer in one pass
+        texts = [
+            f"{v['title']} {(v['description'] or '')[:500]}"
+            for v in videos
+        ]
+        embeddings = self.generate_embeddings_batch(texts)
+        
+        # Store all embeddings
+        now = datetime.utcnow().isoformat()
+        for video, embedding in zip(videos, embeddings):
             await db.execute("""
                 INSERT INTO video_embeddings (video_id, embedding, model_name, created_at)
                 VALUES (?, ?, ?, ?)
@@ -73,7 +80,7 @@ class VideoMLProcessor:
                 video['video_id'],
                 embedding.tobytes(),
                 self.model_name,
-                datetime.utcnow().isoformat()
+                now
             ))
         
         print(f"✅ Generated {len(videos)} embeddings")

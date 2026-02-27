@@ -33,7 +33,6 @@ class Settings(BaseSettings):
     search_published_after_hours: int = 72
     
     # ML Settings
-    embedding_model: str = "all-MiniLM-L6-v2"
     clustering_min_samples: int = 3
     clustering_eps: float = 0.3
     dedup_similarity_threshold: float = 0.95
