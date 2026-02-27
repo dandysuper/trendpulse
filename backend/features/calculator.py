@@ -79,7 +79,7 @@ class FeatureCalculator:
             Freshness score (0-1, where 1 is brand new)
         """
         if current_time is None:
-            current_time = datetime.utcnow()
+            current_time = datetime.now(timezone.utc)
         
         published = datetime.fromisoformat(published_at.replace('Z', '+00:00'))
         hours_elapsed = (current_time - published).total_seconds() / 3600
