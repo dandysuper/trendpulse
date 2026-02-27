@@ -198,11 +198,24 @@ class VideoMLProcessor:
             for row in embeddings_data
         ])
         
-        # Perform DBSCAN clustering
+        # Perform DBSCAN clustering with looser params for TF-IDF vectors
         clustering = DBSCAN(eps=eps, min_samples=min_samples, metric='cosine')
         labels = clustering.fit_predict(embeddings)
         
-        # Process clusters
+        # Count DBSCAN results
+        unique_labels = set(labels)
+        cluster_count = len(unique_labels) - (1 if -1 in unique_labels else 0)
+        
+        # If DBSCAN produces too few clusters, fall back to KMeans
+        min_desired_clusters = 10
+        if cluster_count < min_desired_clusters and len(video_ids) >= min_desired_clusters:
+            from sklearn.cluster import KMeans
+            n_clusters = min(14, max(min_desired_clusters, len(video_ids) // 7))
+            print(f"📊 DBSCAN found only {cluster_count} clusters, switching to KMeans (k={n_clusters})...")
+            kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init=10)
+            labels = kmeans.fit_predict(embeddings)
+        
+        # Process final labels
         unique_labels = set(labels)
         noise_count = list(labels).count(-1)
         cluster_count = len(unique_labels) - (1 if -1 in unique_labels else 0)
