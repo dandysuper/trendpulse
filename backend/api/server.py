@@ -2,6 +2,7 @@
 REST API endpoints for Video Trends Analyzer.
 """
 import os
+import asyncio
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
@@ -111,9 +112,66 @@ if os.path.isdir(STATIC_DIR):
 
 @app.on_event("startup")
 async def startup_event():
-    """Initialize database on startup."""
+    """Initialize database and auto-run pipeline if DB is empty."""
     await init_db(settings.database_path)
     print(f"✅ Database initialized: {settings.database_path}")
+
+    # Auto-run pipeline in background if database is empty and keys are available
+    asyncio.create_task(_auto_ingest_if_empty())
+
+
+async def _auto_ingest_if_empty():
+    """Background task: run the data pipeline if the database has no videos."""
+    try:
+        # Give the server a moment to fully start
+        await asyncio.sleep(2)
+
+        db = await get_db()
+        result = await db.fetch_one("SELECT COUNT(*) as count FROM videos")
+        video_count = result['count'] if result else 0
+
+        if video_count > 0:
+            print(f"ℹ️  Database already has {video_count} videos, skipping auto-ingest.")
+            return
+
+        youtube_key = get_youtube_api_key()
+        rapidapi_key = get_api_key()
+
+        if not youtube_key and not rapidapi_key:
+            print("⚠️  No API keys available, skipping auto-ingest.")
+            return
+
+        print("🚀 Database is empty — auto-running data pipeline...")
+
+        from ingest.rapidapi_ingester import run_ingestion
+        from ingest.tiktok_ingester import run_tiktok_ingestion
+        from features.calculator import compute_all_features
+        from ml.processor import run_ml_pipeline
+
+        total = 0
+        if youtube_key:
+            print("📊 Auto-ingesting from YouTube...")
+            yt_count = await run_ingestion(youtube_key)
+            total += yt_count
+            print(f"✅ YouTube: {yt_count} videos")
+
+        if rapidapi_key:
+            print("🎵 Auto-ingesting from TikTok...")
+            tt_count = await run_tiktok_ingestion(rapidapi_key)
+            total += tt_count
+            print(f"✅ TikTok: {tt_count} videos")
+
+        if total > 0:
+            print("🔧 Computing features...")
+            await compute_all_features()
+            print("🤖 Running ML clustering...")
+            await run_ml_pipeline()
+            print(f"🎉 Auto-ingest complete: {total} videos processed!")
+        else:
+            print("⚠️  No videos ingested (API rate limits or no content available).")
+
+    except Exception as e:
+        print(f"❌ Auto-ingest failed (non-fatal): {e}")
 
 
 @app.on_event("shutdown")
