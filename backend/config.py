@@ -24,6 +24,7 @@ class Settings(BaseSettings):
     # API Configuration
     api_host: str = "0.0.0.0"
     api_port: int = 8000
+    port: int = 8000  # Railway injects PORT env var
     
     # Ingestion Settings
     trending_region_code: str = "US"
