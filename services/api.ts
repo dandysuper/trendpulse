@@ -3,7 +3,7 @@
  * Connects React frontend to Python FastAPI backend
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000';
 
 // Export for use in components
 export { API_BASE_URL };
@@ -65,14 +65,14 @@ import { Video, TrendCluster } from '../types';
 function mapBackendVideoToFrontend(backendVideo: BackendVideo): Video {
   const videoId = backendVideo.video_id.replace('tiktok_', '');
   const isTikTok = backendVideo.video_id.startsWith('tiktok_');
-  
+
   return {
     id: backendVideo.video_id,
     title: backendVideo.title,
     platform: isTikTok ? 'tiktok' : 'youtube',
     views: backendVideo.view_count,
     publishedAt: backendVideo.published_at,
-    url: isTikTok 
+    url: isTikTok
       ? `https://www.tiktok.com/@user/video/${videoId}`
       : `https://www.youtube.com/watch?v=${videoId}`,
     channelName: backendVideo.channel_title
@@ -121,17 +121,17 @@ function mapBackendClusterToFrontend(
 function generateHistoricalGrowth(currentGrowth: number): { day: string; value: number }[] {
   const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   const growth: { day: string; value: number }[] = [];
-  
+
   // Generate ascending trend leading to current growth
   for (let i = 0; i < 7; i++) {
     const progress = (i + 1) / 7;
     const value = Math.round(currentGrowth * progress * (0.5 + Math.random() * 0.5));
     growth.push({ day: days[i], value });
   }
-  
+
   // Ensure last day matches current growth
   growth[6].value = currentGrowth;
-  
+
   return growth;
 }
 
@@ -140,7 +140,7 @@ function generateHistoricalGrowth(currentGrowth: number): { day: string; value: 
  */
 function inferCategory(label: string): string {
   const lowerLabel = label.toLowerCase();
-  
+
   if (lowerLabel.includes('tech') || lowerLabel.includes('ai') || lowerLabel.includes('software')) {
     return 'Tech & Productivity';
   }
@@ -162,7 +162,7 @@ function inferCategory(label: string): string {
   if (lowerLabel.includes('education') || lowerLabel.includes('tutorial') || lowerLabel.includes('learn')) {
     return 'Education';
   }
-  
+
   return 'General';
 }
 
@@ -176,9 +176,9 @@ export async function fetchTrendClusters(): Promise<TrendCluster[]> {
     if (!clustersResponse.ok) {
       throw new Error(`Failed to fetch clusters: ${clustersResponse.statusText}`);
     }
-    
+
     const clustersData: { clusters: BackendCluster[]; total_clusters: number } = await clustersResponse.json();
-    
+
     // Fetch detailed data for each cluster
     const clusterPromises = clustersData.clusters.map(async (cluster) => {
       const detailResponse = await fetch(`${API_BASE_URL}/clusters/${cluster.cluster_id}`);
@@ -189,14 +189,14 @@ export async function fetchTrendClusters(): Promise<TrendCluster[]> {
       const detailData: BackendClusterDetail = await detailResponse.json();
       return mapBackendClusterToFrontend(detailData, detailData.videos);
     });
-    
+
     const clusters = await Promise.all(clusterPromises);
-    
+
     // Filter out failed requests and sort by growth rate
     return clusters
       .filter((c): c is TrendCluster => c !== null)
       .sort((a, b) => b.growthRate - a.growthRate);
-    
+
   } catch (error) {
     console.error('Error fetching trend clusters:', error);
     throw error;
@@ -215,14 +215,14 @@ export async function fetchTrendingVideos(
     const response = await fetch(
       `${API_BASE_URL}/trends?page=${page}&page_size=${pageSize}&min_trend_score=${minTrendScore}&sort_by=trend_score`
     );
-    
+
     if (!response.ok) {
       throw new Error(`Failed to fetch trends: ${response.statusText}`);
     }
-    
+
     const data: BackendTrendsResponse = await response.json();
     return data.videos;
-    
+
   } catch (error) {
     console.error('Error fetching trending videos:', error);
     throw error;
@@ -235,13 +235,13 @@ export async function fetchTrendingVideos(
 export async function fetchVideoDetail(videoId: string): Promise<BackendVideo> {
   try {
     const response = await fetch(`${API_BASE_URL}/trend/${videoId}`);
-    
+
     if (!response.ok) {
       throw new Error(`Failed to fetch video: ${response.statusText}`);
     }
-    
+
     return await response.json();
-    
+
   } catch (error) {
     console.error('Error fetching video detail:', error);
     throw error;
@@ -268,7 +268,7 @@ export async function checkBackendHealth(): Promise<boolean> {
 export async function createFallbackClusters(videos: BackendVideo[]): Promise<TrendCluster[]> {
   // Group videos by cluster_label or create generic clusters
   const clusterMap = new Map<string, BackendVideo[]>();
-  
+
   videos.forEach(video => {
     const label = video.cluster_label || 'Unclustered';
     if (!clusterMap.has(label)) {
@@ -276,16 +276,16 @@ export async function createFallbackClusters(videos: BackendVideo[]): Promise<Tr
     }
     clusterMap.get(label)!.push(video);
   });
-  
+
   // Convert to TrendCluster format
   const clusters: TrendCluster[] = [];
   let clusterId = 1;
-  
+
   clusterMap.forEach((videos, label) => {
     const avgTrendScore = videos.reduce((sum, v) => sum + v.metrics.trend_score, 0) / videos.length;
     const totalViews = videos.reduce((sum, v) => sum + v.view_count, 0);
     const avgEngagementRate = videos.reduce((sum, v) => sum + v.metrics.engagement_rate, 0) / videos.length;
-    
+
     clusters.push({
       id: clusterId.toString(),
       name: label,
@@ -296,9 +296,9 @@ export async function createFallbackClusters(videos: BackendVideo[]): Promise<Tr
       videos: videos.map(mapBackendVideoToFrontend),
       historicalGrowth: generateHistoricalGrowth(Math.round(avgTrendScore * 200)),
     });
-    
+
     clusterId++;
   });
-  
+
   return clusters.sort((a, b) => b.growthRate - a.growthRate);
 }
