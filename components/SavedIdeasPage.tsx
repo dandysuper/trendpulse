@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ContentIdea } from '../types';
 import { Trash2, FileText, PlayCircle, Bookmark, Download, Copy, Check } from 'lucide-react';
+import { useLanguage } from '../LanguageContext';
 
 interface SavedIdea extends ContentIdea {
   id: string;
@@ -9,6 +10,7 @@ interface SavedIdea extends ContentIdea {
 }
 
 export const SavedIdeasPage: React.FC = () => {
+  const { t } = useLanguage();
   const [savedIdeas, setSavedIdeas] = useState<SavedIdea[]>([]);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
@@ -49,10 +51,17 @@ export const SavedIdeasPage: React.FC = () => {
   };
 
   const clearAll = () => {
-    if (confirm('Are you sure you want to delete all saved ideas?')) {
+    if (confirm(t.savedIdeas.confirmClear)) {
       setSavedIdeas([]);
       localStorage.removeItem('trendpulse_saved_ideas');
     }
+  };
+
+  const formatLabel = (format: string) => {
+    if (format === 'Short') return t.formats.short;
+    if (format === 'Long-form') return t.formats.longForm;
+    if (format === 'Carousel') return t.formats.carousel;
+    return format;
   };
 
   return (
@@ -64,13 +73,13 @@ export const SavedIdeasPage: React.FC = () => {
             <div>
               <h1 className="text-3xl font-bold mb-2 flex items-center gap-3">
                 <Bookmark className="w-8 h-8 text-blue-500" />
-                Saved Ideas
+                {t.savedIdeas.title}
               </h1>
               <p className="text-zinc-400">
-                {savedIdeas.length} {savedIdeas.length === 1 ? 'idea' : 'ideas'} saved
+                {t.savedIdeas.ideaCount(savedIdeas.length)}
               </p>
             </div>
-            
+
             {savedIdeas.length > 0 && (
               <div className="flex gap-2">
                 <button
@@ -78,14 +87,14 @@ export const SavedIdeasPage: React.FC = () => {
                   className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
                 >
                   <Download className="w-4 h-4" />
-                  Export
+                  {t.savedIdeas.export}
                 </button>
                 <button
                   onClick={clearAll}
                   className="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
                 >
                   <Trash2 className="w-4 h-4" />
-                  Clear All
+                  {t.savedIdeas.clearAll}
                 </button>
               </div>
             )}
@@ -96,9 +105,9 @@ export const SavedIdeasPage: React.FC = () => {
         {savedIdeas.length === 0 ? (
           <div className="text-center py-20">
             <Bookmark className="w-16 h-16 text-zinc-700 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-zinc-400 mb-2">No saved ideas yet</h3>
+            <h3 className="text-xl font-semibold text-zinc-400 mb-2">{t.savedIdeas.noSavedIdeas}</h3>
             <p className="text-zinc-500">
-              Save content ideas from the dashboard to access them here
+              {t.savedIdeas.noSavedIdeasDescription}
             </p>
           </div>
         ) : (
@@ -111,17 +120,17 @@ export const SavedIdeasPage: React.FC = () => {
                 {/* Header */}
                 <div className="flex items-center justify-between mb-4">
                   <span className={`text-xs px-2 py-1 rounded-md font-medium
-                    ${idea.format === 'Short' ? 'bg-pink-500/10 text-pink-400' : 
-                      idea.format === 'Long-form' ? 'bg-blue-500/10 text-blue-400' : 
-                      'bg-amber-500/10 text-amber-400'
+                    ${idea.format === 'Short' ? 'bg-pink-500/10 text-pink-400' :
+                      idea.format === 'Long-form' ? 'bg-blue-500/10 text-blue-400' :
+                        'bg-amber-500/10 text-amber-400'
                     }
                   `}>
-                    {idea.format}
+                    {formatLabel(idea.format)}
                   </span>
                   <button
                     onClick={() => deleteIdea(idea.id)}
                     className="p-1.5 hover:bg-zinc-800 rounded-lg text-zinc-500 hover:text-red-400 transition-colors"
-                    title="Delete idea"
+                    title={t.savedIdeas.deleteIdea}
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -130,7 +139,7 @@ export const SavedIdeasPage: React.FC = () => {
                 {/* Trend Badge */}
                 <div className="mb-3">
                   <span className="text-xs text-zinc-500 font-medium">
-                    From: {idea.trendName}
+                    {t.savedIdeas.fromTrend} {idea.trendName}
                   </span>
                 </div>
 
@@ -144,15 +153,15 @@ export const SavedIdeasPage: React.FC = () => {
                   <div className="bg-zinc-950/50 p-3 rounded-lg border border-zinc-800/50">
                     <div className="flex items-center gap-2 text-xs font-semibold text-zinc-400 mb-1">
                       <PlayCircle className="w-3 h-3" />
-                      THE HOOK
+                      {t.ideas.theHook}
                     </div>
                     <p className="text-sm text-zinc-300 italic">"{idea.hook}"</p>
                   </div>
-                  
+
                   <div className="bg-zinc-950/50 p-3 rounded-lg border border-zinc-800/50">
                     <div className="flex items-center gap-2 text-xs font-semibold text-zinc-400 mb-1">
                       <FileText className="w-3 h-3" />
-                      OUTLINE
+                      {t.ideas.outline}
                     </div>
                     <p className="text-sm text-zinc-400 leading-relaxed whitespace-pre-line">
                       {idea.outline}
@@ -169,12 +178,12 @@ export const SavedIdeasPage: React.FC = () => {
                     {copiedId === idea.id ? (
                       <>
                         <Check className="w-4 h-4" />
-                        Copied!
+                        {t.savedIdeas.copied}
                       </>
                     ) : (
                       <>
                         <Copy className="w-4 h-4" />
-                        Copy
+                        {t.savedIdeas.copy}
                       </>
                     )}
                   </button>
@@ -182,7 +191,7 @@ export const SavedIdeasPage: React.FC = () => {
 
                 {/* Saved Date */}
                 <div className="mt-3 text-xs text-zinc-600">
-                  Saved {new Date(idea.savedAt).toLocaleDateString()}
+                  {t.savedIdeas.savedOn} {new Date(idea.savedAt).toLocaleDateString()}
                 </div>
               </div>
             ))}
@@ -205,8 +214,8 @@ export const saveIdea = (idea: ContentIdea, trendName: string) => {
   const stored = localStorage.getItem('trendpulse_saved_ideas');
   const existing: SavedIdea[] = stored ? JSON.parse(stored) : [];
   const updated = [savedIdea, ...existing];
-  
+
   localStorage.setItem('trendpulse_saved_ideas', JSON.stringify(updated));
-  
+
   return savedIdea;
 };

@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { TrendCluster } from '../types';
 import { BarChart3, TrendingUp, Eye, Users, Video, Activity, ArrowUp, ArrowDown } from 'lucide-react';
+import { useLanguage } from '../LanguageContext';
 
 interface AnalyticsPageProps {
   trends: TrendCluster[];
 }
 
 export const AnalyticsPage: React.FC<AnalyticsPageProps> = ({ trends }) => {
+  const { t } = useLanguage();
   const [stats, setStats] = useState({
     totalVideos: 0,
     totalViews: 0,
@@ -24,14 +26,14 @@ export const AnalyticsPage: React.FC<AnalyticsPageProps> = ({ trends }) => {
     const totalViews = trends.reduce((sum, t) => sum + t.totalViews, 0);
     const avgGrowthRate = trends.reduce((sum, t) => sum + t.growthRate, 0) / trends.length;
     const avgEngagement = trends.reduce((sum, t) => sum + t.engagementScore, 0) / trends.length;
-    
+
     // Find top category
     const categoryCount: Record<string, number> = {};
     trends.forEach(t => {
       categoryCount[t.category] = (categoryCount[t.category] || 0) + 1;
     });
     const topCategory = Object.entries(categoryCount).sort((a, b) => b[1] - a[1])[0]?.[0] || 'N/A';
-    
+
     // Count trending up/down
     const trendingUp = trends.filter(t => t.growthRate > 50).length;
     const trendingDown = trends.filter(t => t.growthRate < 20).length;
@@ -61,19 +63,19 @@ export const AnalyticsPage: React.FC<AnalyticsPageProps> = ({ trends }) => {
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2 flex items-center gap-3">
             <BarChart3 className="w-8 h-8 text-blue-500" />
-            Analytics Dashboard
+            {t.analyticsPage.title}
           </h1>
           <p className="text-zinc-400">
-            Overview of trending content performance
+            {t.analyticsPage.overview}
           </p>
         </div>
 
         {trends.length === 0 ? (
           <div className="text-center py-20">
             <Activity className="w-16 h-16 text-zinc-700 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-zinc-400 mb-2">No data available</h3>
+            <h3 className="text-xl font-semibold text-zinc-400 mb-2">{t.analyticsPage.noData}</h3>
             <p className="text-zinc-500">
-              Load trend data from the dashboard to see analytics
+              {t.analyticsPage.noDataDescription}
             </p>
           </div>
         ) : (
@@ -84,40 +86,40 @@ export const AnalyticsPage: React.FC<AnalyticsPageProps> = ({ trends }) => {
               <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
                 <div className="flex items-center justify-between mb-2">
                   <Video className="w-5 h-5 text-blue-500" />
-                  <span className="text-xs text-zinc-500 font-medium">TOTAL</span>
+                  <span className="text-xs text-zinc-500 font-medium">{t.analyticsPage.total}</span>
                 </div>
                 <div className="text-3xl font-bold mb-1">{stats.totalVideos}</div>
-                <div className="text-sm text-zinc-400">Videos Tracked</div>
+                <div className="text-sm text-zinc-400">{t.analyticsPage.videosTracked}</div>
               </div>
 
               {/* Total Views */}
               <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
                 <div className="flex items-center justify-between mb-2">
                   <Eye className="w-5 h-5 text-purple-500" />
-                  <span className="text-xs text-zinc-500 font-medium">VIEWS</span>
+                  <span className="text-xs text-zinc-500 font-medium">{t.analyticsPage.viewsLabel}</span>
                 </div>
                 <div className="text-3xl font-bold mb-1">{formatNumber(stats.totalViews)}</div>
-                <div className="text-sm text-zinc-400">Total Views</div>
+                <div className="text-sm text-zinc-400">{t.analyticsPage.totalViews}</div>
               </div>
 
               {/* Avg Growth Rate */}
               <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
                 <div className="flex items-center justify-between mb-2">
                   <TrendingUp className="w-5 h-5 text-green-500" />
-                  <span className="text-xs text-zinc-500 font-medium">GROWTH</span>
+                  <span className="text-xs text-zinc-500 font-medium">{t.analyticsPage.growthLabel}</span>
                 </div>
                 <div className="text-3xl font-bold mb-1">{stats.avgGrowthRate.toFixed(0)}%</div>
-                <div className="text-sm text-zinc-400">Avg Growth Rate</div>
+                <div className="text-sm text-zinc-400">{t.analyticsPage.avgGrowthRate}</div>
               </div>
 
               {/* Avg Engagement */}
               <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
                 <div className="flex items-center justify-between mb-2">
                   <Users className="w-5 h-5 text-amber-500" />
-                  <span className="text-xs text-zinc-500 font-medium">ENGAGEMENT</span>
+                  <span className="text-xs text-zinc-500 font-medium">{t.analyticsPage.engagementLabel}</span>
                 </div>
                 <div className="text-3xl font-bold mb-1">{stats.avgEngagement.toFixed(0)}</div>
-                <div className="text-sm text-zinc-400">Avg Score</div>
+                <div className="text-sm text-zinc-400">{t.analyticsPage.avgScore}</div>
               </div>
             </div>
 
@@ -127,7 +129,7 @@ export const AnalyticsPage: React.FC<AnalyticsPageProps> = ({ trends }) => {
               <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
                 <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
                   <ArrowUp className="w-5 h-5 text-green-500" />
-                  Top Growing Trends
+                  {t.analyticsPage.topGrowingTrends}
                 </h3>
                 <div className="space-y-3">
                   {trends
@@ -146,7 +148,7 @@ export const AnalyticsPage: React.FC<AnalyticsPageProps> = ({ trends }) => {
                         </div>
                         <div className="text-right">
                           <div className="text-green-400 font-bold">+{trend.growthRate}%</div>
-                          <div className="text-xs text-zinc-500">{formatNumber(trend.totalViews)} views</div>
+                          <div className="text-xs text-zinc-500">{formatNumber(trend.totalViews)} {t.analyticsPage.views}</div>
                         </div>
                       </div>
                     ))}
@@ -157,7 +159,7 @@ export const AnalyticsPage: React.FC<AnalyticsPageProps> = ({ trends }) => {
               <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
                 <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
                   <Users className="w-5 h-5 text-amber-500" />
-                  Most Engaging Trends
+                  {t.analyticsPage.mostEngagingTrends}
                 </h3>
                 <div className="space-y-3">
                   {trends
@@ -176,7 +178,7 @@ export const AnalyticsPage: React.FC<AnalyticsPageProps> = ({ trends }) => {
                         </div>
                         <div className="text-right">
                           <div className="text-amber-400 font-bold">{trend.engagementScore}</div>
-                          <div className="text-xs text-zinc-500">engagement</div>
+                          <div className="text-xs text-zinc-500">{t.analyticsPage.engagement}</div>
                         </div>
                       </div>
                     ))}
@@ -186,7 +188,7 @@ export const AnalyticsPage: React.FC<AnalyticsPageProps> = ({ trends }) => {
 
             {/* Category Breakdown */}
             <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 mb-8">
-              <h3 className="text-lg font-bold mb-4">Category Breakdown</h3>
+              <h3 className="text-lg font-bold mb-4">{t.analyticsPage.categoryBreakdown}</h3>
               <div className="space-y-3">
                 {Object.entries(
                   trends.reduce((acc, trend) => {
@@ -201,7 +203,7 @@ export const AnalyticsPage: React.FC<AnalyticsPageProps> = ({ trends }) => {
                       <div key={category}>
                         <div className="flex items-center justify-between mb-1">
                           <span className="text-sm font-medium">{category}</span>
-                          <span className="text-sm text-zinc-400">{count} trends ({percentage.toFixed(0)}%)</span>
+                          <span className="text-sm text-zinc-400">{t.analyticsPage.trends(count as number)} ({percentage.toFixed(0)}%)</span>
                         </div>
                         <div className="w-full bg-zinc-800 rounded-full h-2">
                           <div
@@ -220,30 +222,30 @@ export const AnalyticsPage: React.FC<AnalyticsPageProps> = ({ trends }) => {
               <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
                 <div className="flex items-center gap-3 mb-2">
                   <ArrowUp className="w-5 h-5 text-green-500" />
-                  <span className="text-sm font-medium text-zinc-400">TRENDING UP</span>
+                  <span className="text-sm font-medium text-zinc-400">{t.analyticsPage.trendingUp}</span>
                 </div>
                 <div className="text-3xl font-bold text-green-400">{stats.trendingUp}</div>
-                <div className="text-xs text-zinc-500 mt-1">Growth &gt; 50%</div>
+                <div className="text-xs text-zinc-500 mt-1">{t.analyticsPage.growthAbove50}</div>
               </div>
 
               <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
                 <div className="flex items-center gap-3 mb-2">
                   <Activity className="w-5 h-5 text-blue-500" />
-                  <span className="text-sm font-medium text-zinc-400">STABLE</span>
+                  <span className="text-sm font-medium text-zinc-400">{t.analyticsPage.stable}</span>
                 </div>
                 <div className="text-3xl font-bold text-blue-400">
                   {Math.max(0, trends.length - stats.trendingUp - stats.trendingDown)}
                 </div>
-                <div className="text-xs text-zinc-500 mt-1">20-50% growth</div>
+                <div className="text-xs text-zinc-500 mt-1">{t.analyticsPage.growth2050}</div>
               </div>
 
               <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
                 <div className="flex items-center gap-3 mb-2">
                   <ArrowDown className="w-5 h-5 text-red-500" />
-                  <span className="text-sm font-medium text-zinc-400">SLOWING</span>
+                  <span className="text-sm font-medium text-zinc-400">{t.analyticsPage.slowing}</span>
                 </div>
                 <div className="text-3xl font-bold text-red-400">{stats.trendingDown}</div>
-                <div className="text-xs text-zinc-500 mt-1">Growth &lt; 20%</div>
+                <div className="text-xs text-zinc-500 mt-1">{t.analyticsPage.growthBelow20}</div>
               </div>
             </div>
           </>

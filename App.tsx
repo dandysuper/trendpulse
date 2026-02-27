@@ -8,10 +8,12 @@ import { AnalyticsPage } from './components/AnalyticsPage';
 import { MOCK_TRENDS } from './mockData';
 import { TrendCluster } from './types';
 import { fetchTrendClusters, checkBackendHealth, API_BASE_URL } from './services/api';
+import { useLanguage } from './LanguageContext';
 
 type Page = 'dashboard' | 'saved' | 'analytics';
 
 const App: React.FC = () => {
+  const { t } = useLanguage();
   const [selectedTrend, setSelectedTrend] = useState<TrendCluster>(MOCK_TRENDS[0]);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [trends, setTrends] = useState<TrendCluster[]>(MOCK_TRENDS);
@@ -60,7 +62,7 @@ const App: React.FC = () => {
       // No clusters yet — pipeline may still be running, retry
       if (retryCount < maxRetries) {
         retryCount++;
-        setError('Loading data from API... Pipeline may still be running.');
+        setError(t.dashboard.loadingDataPipeline);
         setIsLoading(false);
         retryTimer = setTimeout(tryLoadData, 15000);
       } else {
@@ -86,13 +88,13 @@ const App: React.FC = () => {
         setSelectedTrend(clusters[0]);
         setUseRealData(true);
       } else {
-        setError('No clusters found. Backend may need data ingestion.');
+        setError(t.dashboard.noClustersFound);
         setTrends(MOCK_TRENDS);
         setSelectedTrend(MOCK_TRENDS[0]);
       }
     } catch (err) {
       console.error('Failed to load real data:', err);
-      setError('Failed to connect to backend. Using mock data.');
+      setError(t.dashboard.failedToConnect);
       setTrends(MOCK_TRENDS);
       setSelectedTrend(MOCK_TRENDS[0]);
     } finally {
@@ -117,7 +119,7 @@ const App: React.FC = () => {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ detail: 'Unknown error' }));
-        throw new Error(errorData.detail || 'Failed to refresh data');
+        throw new Error(errorData.detail || t.dashboard.failedToRefresh);
       }
 
       const result = await response.json();
@@ -138,7 +140,7 @@ const App: React.FC = () => {
 
     } catch (err: any) {
       console.error('Refresh failed:', err);
-      setError(err.message || 'Failed to refresh data. Please try again.');
+      setError(err.message || t.dashboard.failedToRefresh);
     } finally {
       setIsRefreshing(false);
     }
@@ -152,51 +154,51 @@ const App: React.FC = () => {
           <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/20">
             <Zap className="w-5 h-5 text-white" fill="currentColor" />
           </div>
-          <span className="font-bold text-xl tracking-tight">TrendPulse</span>
+          <span className="font-bold text-xl tracking-tight">{t.appName}</span>
         </div>
 
         <nav className="flex-1 p-4 space-y-1">
           <button
             onClick={() => setCurrentPage('dashboard')}
             className={`flex items-center gap-3 w-full px-3 py-2 text-sm font-medium rounded-lg transition-colors ${currentPage === 'dashboard'
-                ? 'bg-zinc-800 text-white'
-                : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'
+              ? 'bg-zinc-800 text-white'
+              : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'
               }`}
           >
             <LayoutDashboard className="w-4 h-4" />
-            Dashboard
+            {t.nav.dashboard}
           </button>
           <button
             onClick={() => setCurrentPage('saved')}
             className={`flex items-center gap-3 w-full px-3 py-2 text-sm font-medium rounded-lg transition-colors ${currentPage === 'saved'
-                ? 'bg-zinc-800 text-white'
-                : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'
+              ? 'bg-zinc-800 text-white'
+              : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'
               }`}
           >
             <FileVideo className="w-4 h-4" />
-            Saved Ideas
+            {t.nav.savedIdeas}
           </button>
           <button
             onClick={() => setCurrentPage('analytics')}
             className={`flex items-center gap-3 w-full px-3 py-2 text-sm font-medium rounded-lg transition-colors ${currentPage === 'analytics'
-                ? 'bg-zinc-800 text-white'
-                : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'
+              ? 'bg-zinc-800 text-white'
+              : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'
               }`}
           >
             <BarChart3 className="w-4 h-4" />
-            Analytics
+            {t.nav.analytics}
           </button>
         </nav>
 
         {/* Backend Status Indicator */}
         <div className="px-4 pb-2">
           <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs ${backendHealthy
-              ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-              : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+            ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+            : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
             }`}>
             <div className={`w-2 h-2 rounded-full ${backendHealthy ? 'bg-emerald-400' : 'bg-amber-400'} animate-pulse`} />
             <span className="font-medium">
-              {backendHealthy ? 'Backend Connected' : 'Using Mock Data'}
+              {backendHealthy ? t.status.backendConnected : t.status.usingMockData}
             </span>
           </div>
         </div>
@@ -207,7 +209,7 @@ const App: React.FC = () => {
             className="flex items-center gap-3 w-full px-3 py-2 text-sm font-medium rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800/50 transition-colors"
           >
             <Settings className="w-4 h-4" />
-            Settings
+            {t.nav.settings}
           </button>
         </div>
       </aside>
@@ -218,7 +220,7 @@ const App: React.FC = () => {
           <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
             <Zap className="w-5 h-5 text-white" fill="currentColor" />
           </div>
-          <span className="font-bold text-lg">TrendPulse</span>
+          <span className="font-bold text-lg">{t.appName}</span>
         </div>
         <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="p-2 text-zinc-400">
           {isMobileMenuOpen ? <X /> : <Menu />}
@@ -243,14 +245,14 @@ const App: React.FC = () => {
             `}>
               <div className="p-4 border-b border-zinc-800 flex items-center justify-between">
                 <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider">
-                  {useRealData ? 'Live Clusters' : 'Active Clusters'}
+                  {useRealData ? t.dashboard.liveClusters : t.dashboard.activeClusters}
                 </h2>
                 {backendHealthy && (
                   <button
                     onClick={handleRefresh}
                     disabled={isLoading || isRefreshing}
                     className="p-1.5 rounded-lg hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors disabled:opacity-50"
-                    title="Refresh data from API"
+                    title={t.dashboard.refreshData}
                   >
                     <RefreshCw className={`w-4 h-4 ${isLoading || isRefreshing ? 'animate-spin' : ''}`} />
                   </button>
@@ -270,7 +272,7 @@ const App: React.FC = () => {
                 <div className="flex-1 flex items-center justify-center">
                   <div className="text-center">
                     <RefreshCw className="w-8 h-8 text-blue-500 animate-spin mx-auto mb-2" />
-                    <p className="text-sm text-zinc-400">Loading trends...</p>
+                    <p className="text-sm text-zinc-400">{t.dashboard.loadingTrends}</p>
                   </div>
                 </div>
               ) : (
