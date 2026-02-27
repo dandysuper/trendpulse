@@ -2,7 +2,7 @@
 Feature engineering module.
 Computes derived metrics: views_per_hour, engagement_rate, freshness_score, trend_score.
 """
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import List, Dict, Any, Optional
 import math
 from database.db import get_db
@@ -28,7 +28,7 @@ class FeatureCalculator:
             Views per hour (float)
         """
         if current_time is None:
-            current_time = datetime.utcnow()
+            current_time = datetime.now(timezone.utc)
         
         published = datetime.fromisoformat(published_at.replace('Z', '+00:00'))
         hours_elapsed = (current_time - published).total_seconds() / 3600
@@ -212,7 +212,7 @@ async def compute_all_features():
         print("⚠️  No videos found in database")
         return 0
     
-    current_time = datetime.utcnow()
+    current_time = datetime.now(timezone.utc)
     processed = 0
     
     for video in videos:
