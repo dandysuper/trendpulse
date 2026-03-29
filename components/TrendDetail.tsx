@@ -57,169 +57,245 @@ export const TrendDetail: React.FC<TrendDetailProps> = ({ trend }) => {
     }
   };
 
+  const getPlatformIcon = (platform: string) => {
+    switch (platform) {
+      case 'youtube': return <Youtube className="w-3 h-3" />;
+      case 'tiktok': return <TikTokIcon className="w-3 h-3" />;
+      default: return <Instagram className="w-3 h-3" />;
+    }
+  };
+
+  const getPlatformLabel = (platform: string, channelName?: string) => {
+    if (channelName) return channelName;
+    switch (platform) {
+      case 'youtube': return 'YouTube';
+      case 'tiktok': return 'TikTok';
+      default: return platform.charAt(0).toUpperCase() + platform.slice(1);
+    }
+  };
+
   return (
-    <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-6 sm:space-y-8">
-      {/* Header Section */}
-      <div className="flex flex-col gap-4">
-        <div>
-          <div className="flex flex-wrap items-center gap-2 mb-2">
-            <span className="px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 text-xs sm:text-sm font-medium">
-              {trend.category}
-            </span>
-            <span className="px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs sm:text-sm font-medium flex items-center gap-1">
-              <BarChart2 className="w-3 h-3" />
-              {trend.growthRate}% {t.dashboard.growth}
-            </span>
-          </div>
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-2 tracking-tight break-words">{trend.name}</h1>
-          <p className="text-sm sm:text-base text-zinc-400">{t.trendDetail.totalVolume} {(trend.totalViews / 1000000).toFixed(1)}M+</p>
+    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6 sm:space-y-8 animate-fade-in">
+
+      {/* ── Header ── */}
+      <header className="flex flex-col gap-5">
+        {/* Pills */}
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="glass inline-flex items-center px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-medium text-[var(--color-accent-teal)]">
+            {trend.category}
+          </span>
+          <span className="glass inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-medium text-[var(--color-accent-green)]">
+            <BarChart2 className="w-3 h-3" />
+            {trend.growthRate}% {t.dashboard.growth}
+          </span>
         </div>
 
-        <div className="flex gap-3">
+        {/* Title */}
+        <div>
+          <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-bold text-[var(--color-text-primary)] tracking-tight leading-tight break-words">
+            {trend.name}
+          </h1>
+          <p className="mt-2 text-sm sm:text-base text-[var(--color-text-secondary)]">
+            {t.trendDetail.totalVolume} {(trend.totalViews / 1000000).toFixed(1)}M+
+          </p>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex flex-wrap gap-3">
           {!insight ? (
             <button
               onClick={handleAnalyze}
               disabled={isAnalyzing}
-              className="bg-white text-zinc-950 hover:bg-zinc-200 disabled:opacity-70 disabled:cursor-not-allowed px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-white/10 transition-all text-sm sm:text-base"
+              className="bg-[var(--color-accent-blue)] hover:brightness-110 disabled:opacity-60 disabled:cursor-not-allowed text-white px-5 sm:px-7 py-2.5 sm:py-3 rounded-2xl font-semibold flex items-center gap-2.5 transition-all text-sm sm:text-base shadow-[var(--shadow-glow-blue)]"
             >
-              {isAnalyzing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4 text-blue-600" />}
+              {isAnalyzing ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Sparkles className="w-4 h-4" />
+              )}
               {t.trendDetail.analyzeWithAI}
             </button>
           ) : (
             <button
               onClick={handleGenerateIdeas}
               disabled={isGeneratingIdeas}
-              className="bg-blue-600 hover:bg-blue-500 text-white disabled:opacity-70 disabled:cursor-not-allowed px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-blue-500/20 transition-all text-sm sm:text-base"
+              className="bg-[var(--color-accent-blue)] hover:brightness-110 disabled:opacity-60 disabled:cursor-not-allowed text-white px-5 sm:px-7 py-2.5 sm:py-3 rounded-2xl font-semibold flex items-center gap-2.5 transition-all text-sm sm:text-base shadow-[var(--shadow-glow-blue)]"
             >
-              {isGeneratingIdeas ? <Loader2 className="w-4 h-4 animate-spin" /> : <Video className="w-4 h-4" />}
+              {isGeneratingIdeas ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Video className="w-4 h-4" />
+              )}
               {t.trendDetail.generateIdeas}
             </button>
           )}
         </div>
-      </div>
 
-      {/* Main Grid */}
+        {/* Error Banner */}
+        {error && (
+          <div className="glass rounded-2xl px-4 py-3 text-sm text-[var(--color-accent-red)] border-[var(--color-accent-red)]/20 animate-fade-in">
+            {error}
+          </div>
+        )}
+      </header>
+
+      {/* ── Main Grid ── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
 
-        {/* Left Col: Chart & Videos */}
+        {/* ── Left Column: Chart + Videos ── */}
         <div className="lg:col-span-2 space-y-4 sm:space-y-6">
+
           {/* Chart Card */}
-          <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-4 sm:p-6 backdrop-blur-sm">
+          <div className="glass-prominent rounded-3xl p-4 sm:p-6 animate-slide-up">
             <div className="flex justify-between items-center mb-4 sm:mb-6">
-              <h3 className="font-semibold text-base sm:text-lg">{t.trendDetail.velocityTrack}</h3>
+              <h3 className="font-semibold text-base sm:text-lg text-[var(--color-text-primary)]">
+                {t.trendDetail.velocityTrack}
+              </h3>
             </div>
             <TrendChart data={trend.historicalGrowth} />
           </div>
 
-          {/* Top Videos List */}
-          <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-4 sm:p-6 backdrop-blur-sm">
-            <h3 className="font-semibold text-base sm:text-lg mb-3 sm:mb-4">{t.trendDetail.topPerformingVideos}</h3>
-            <div className="space-y-2 sm:space-y-3">
+          {/* Videos List Card */}
+          <div className="glass-prominent rounded-3xl p-4 sm:p-6 animate-slide-up" style={{ animationDelay: '80ms' }}>
+            <h3 className="font-semibold text-base sm:text-lg text-[var(--color-text-primary)] mb-3 sm:mb-4">
+              {t.trendDetail.topPerformingVideos}
+            </h3>
+            <div className="space-y-1.5 sm:space-y-2">
               {trend.videos.map((video) => (
                 <a
                   key={video.id}
                   href={video.url || '#'}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-3 sm:gap-4 p-2.5 sm:p-3 hover:bg-zinc-800/50 rounded-xl transition-colors group cursor-pointer"
+                  className="glass-hover flex items-center gap-3 sm:gap-4 p-2.5 sm:p-3.5 rounded-2xl transition-all group cursor-pointer border border-transparent"
                 >
-                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-zinc-800 rounded-lg flex items-center justify-center shrink-0">
-                    <Play className="w-4 h-4 sm:w-5 sm:h-5 text-zinc-500 group-hover:text-white fill-current" />
+                  {/* Play Icon */}
+                  <div className="glass w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center shrink-0 group-hover:border-[var(--color-border-glass-prominent)]">
+                    <Play className="w-4 h-4 sm:w-5 sm:h-5 text-[var(--color-text-tertiary)] group-hover:text-[var(--color-text-primary)] fill-current transition-colors" />
                   </div>
+
+                  {/* Info */}
                   <div className="flex-1 min-w-0">
-                    <h4 className="font-medium text-zinc-200 truncate group-hover:text-white text-sm">{video.title}</h4>
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-zinc-500 mt-1">
+                    <h4 className="font-medium text-[var(--color-text-primary)] opacity-85 group-hover:opacity-100 truncate text-sm transition-opacity">
+                      {video.title}
+                    </h4>
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-[var(--color-text-tertiary)] mt-1">
                       <span className="flex items-center gap-1">
-                        {video.platform === 'youtube' ? (
-                          <Youtube className="w-3 h-3" />
-                        ) : video.platform === 'tiktok' ? (
-                          <TikTokIcon className="w-3 h-3" />
-                        ) : (
-                          <Instagram className="w-3 h-3" />
-                        )}
-                        {video.channelName || (video.platform === 'youtube' ? 'YouTube' :
-                          video.platform === 'tiktok' ? 'TikTok' :
-                            video.platform.charAt(0).toUpperCase() + video.platform.slice(1))}
+                        {getPlatformIcon(video.platform)}
+                        {getPlatformLabel(video.platform, video.channelName)}
                       </span>
-                      <span className="hidden xs:inline">•</span>
+                      <span className="hidden xs:inline opacity-40">•</span>
                       <span>{(video.views / 1000).toFixed(0)}{t.dashboard.kViews}</span>
-                      <span className="hidden sm:inline">•</span>
+                      <span className="hidden sm:inline opacity-40">•</span>
                       <span className="hidden sm:inline">{video.publishedAt}</span>
                     </div>
                   </div>
-                  <ArrowRight className="w-4 h-4 text-zinc-600 group-hover:text-zinc-300 opacity-0 group-hover:opacity-100 transition-all hidden sm:block" />
+
+                  {/* Arrow */}
+                  <ArrowRight className="w-4 h-4 text-[var(--color-text-tertiary)] opacity-0 group-hover:opacity-100 transition-all hidden sm:block" />
                 </a>
               ))}
             </div>
           </div>
         </div>
 
-        {/* Right Col: AI Insights */}
-        <div className="lg:col-span-1">
+        {/* ── Right Column: AI Insights ── */}
+        <div className="lg:col-span-1 animate-slide-in-right">
+
+          {/* Loading State */}
           {isAnalyzing && (
-            <div className="min-h-[250px] lg:min-h-[400px] flex flex-col items-center justify-center bg-zinc-900/30 border border-zinc-800 border-dashed rounded-2xl text-zinc-500 gap-4">
-              <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
-              <p className="text-sm font-medium animate-pulse">{t.trendDetail.analyzingSemantics}</p>
+            <div className="glass min-h-[250px] lg:min-h-[400px] flex flex-col items-center justify-center rounded-3xl border-dashed border-[var(--color-border-glass-prominent)] gap-4 animate-fade-in">
+              <Loader2 className="w-8 h-8 text-[var(--color-accent-blue)] animate-spin animate-pulse-glow rounded-full" />
+              <p className="text-sm font-medium text-[var(--color-text-secondary)] animate-pulse">
+                {t.trendDetail.analyzingSemantics}
+              </p>
             </div>
           )}
 
+          {/* Empty State */}
           {!insight && !isAnalyzing && (
-            <div className="min-h-[200px] lg:min-h-[400px] flex flex-col items-center justify-center bg-zinc-900/30 border border-zinc-800 border-dashed rounded-2xl text-zinc-500 p-6 sm:p-8 text-center">
-              <Sparkles className="w-10 h-10 sm:w-12 sm:h-12 mb-4 opacity-20" />
-              <h4 className="text-base sm:text-lg font-semibold text-zinc-400 mb-2">{t.trendDetail.unlockAIInsights}</h4>
-              <p className="text-sm max-w-[250px]">{t.trendDetail.unlockDescription}</p>
+            <div className="glass min-h-[200px] lg:min-h-[400px] flex flex-col items-center justify-center rounded-3xl border-dashed border-[var(--color-border-glass-prominent)] p-6 sm:p-8 text-center animate-fade-in">
+              <div className="mb-5 p-4 rounded-full bg-[var(--color-bg-glass)]">
+                <Sparkles className="w-8 h-8 sm:w-10 sm:h-10 text-[var(--color-text-tertiary)] opacity-30" />
+              </div>
+              <h4 className="text-base sm:text-lg font-semibold text-[var(--color-text-secondary)] mb-2">
+                {t.trendDetail.unlockAIInsights}
+              </h4>
+              <p className="text-sm text-[var(--color-text-tertiary)] max-w-[260px] leading-relaxed">
+                {t.trendDetail.unlockDescription}
+              </p>
             </div>
           )}
 
+          {/* Insights Cards */}
           {insight && (
-            <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-500">
-              <div className="bg-gradient-to-br from-blue-900/20 to-zinc-900 border border-blue-500/20 rounded-2xl p-4 sm:p-6">
-                <div className="flex items-center gap-2 mb-3 text-blue-400 font-bold text-sm uppercase tracking-wide">
+            <div className="space-y-4 stagger-children">
+
+              {/* Why Trending */}
+              <div
+                className="glass-prominent rounded-3xl p-4 sm:p-6 animate-slide-up relative overflow-hidden"
+              >
+                {/* Gradient top border accent */}
+                <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-[var(--color-accent-blue)] via-[var(--color-accent-teal)] to-transparent" />
+                <div className="flex items-center gap-2 mb-3 text-[var(--color-accent-blue)] font-bold text-xs uppercase tracking-widest">
                   <Target className="w-4 h-4" />
                   {t.trendDetail.whyTrending}
                 </div>
-                <p className="text-zinc-200 leading-relaxed text-sm">
+                <p className="text-[var(--color-text-primary)] opacity-90 leading-relaxed text-sm">
                   {insight.whyTrending}
                 </p>
               </div>
 
-              <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-4 sm:p-6">
-                <div className="flex items-center gap-2 mb-3 sm:mb-4 text-zinc-400 font-bold text-xs uppercase tracking-wide">
-                  <span className="w-2 h-2 rounded-full bg-pink-500"></span>
+              {/* Winning Hooks */}
+              <div className="glass-prominent rounded-3xl p-4 sm:p-6 animate-slide-up">
+                <div className="flex items-center gap-2 mb-3 sm:mb-4 text-[var(--color-text-secondary)] font-bold text-xs uppercase tracking-widest">
+                  <span className="w-2 h-2 rounded-full bg-[var(--color-accent-pink)]" />
                   {t.trendDetail.winningHooks}
                 </div>
-                <ul className="space-y-2 sm:space-y-3">
+                <ul className="space-y-2.5 sm:space-y-3">
                   {insight.hooks.map((hook, i) => (
-                    <li key={i} className="flex gap-3 text-sm text-zinc-300">
-                      <span className="text-zinc-600 font-mono select-none">0{i + 1}</span>
-                      {hook}
+                    <li key={i} className="flex gap-3 text-sm text-[var(--color-text-primary)] opacity-85">
+                      <span className="text-[var(--color-text-tertiary)] font-mono select-none shrink-0">
+                        0{i + 1}
+                      </span>
+                      <span className="leading-relaxed">{hook}</span>
                     </li>
                   ))}
                 </ul>
               </div>
 
-              <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-4 sm:p-6">
-                <div className="flex items-center gap-2 mb-3 sm:mb-4 text-zinc-400 font-bold text-xs uppercase tracking-wide">
-                  <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+              {/* Audience */}
+              <div className="glass-prominent rounded-3xl p-4 sm:p-6 animate-slide-up">
+                <div className="flex items-center gap-2 mb-3 sm:mb-4 text-[var(--color-text-secondary)] font-bold text-xs uppercase tracking-widest">
+                  <span className="w-2 h-2 rounded-full bg-[var(--color-accent-orange)]" />
                   {t.trendDetail.audience}
                 </div>
-                <p className="text-sm text-zinc-300">{insight.audience}</p>
+                <p className="text-sm text-[var(--color-text-primary)] opacity-85 leading-relaxed">
+                  {insight.audience}
+                </p>
               </div>
             </div>
           )}
         </div>
       </div>
 
-      {/* Generated Ideas Section */}
+      {/* ── Generated Ideas Section ── */}
       {ideas.length > 0 && (
-        <div className="pt-6 sm:pt-8 border-t border-zinc-800">
-          <div className="flex items-center gap-3 mb-4 sm:mb-6">
-            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-600/20 rounded-full flex items-center justify-center">
-              <Video className="w-4 h-4 sm:w-5 sm:h-5 text-blue-400" />
+        <div className="animate-slide-up">
+          {/* Glass divider */}
+          <div className="h-px bg-gradient-to-r from-transparent via-[var(--color-border-glass-prominent)] to-transparent mb-6 sm:mb-8" />
+
+          <div className="flex items-center gap-3 mb-5 sm:mb-7">
+            <div className="w-9 h-9 sm:w-11 sm:h-11 glass rounded-full flex items-center justify-center">
+              <Video className="w-4 h-4 sm:w-5 sm:h-5 text-[var(--color-accent-blue)]" />
             </div>
             <div>
-              <h2 className="text-xl sm:text-2xl font-bold">{t.ideas.tailoredContentIdeas}</h2>
-              <p className="text-zinc-400 text-xs sm:text-sm">{t.ideas.generatedByAI}</p>
+              <h2 className="text-xl sm:text-2xl font-bold text-[var(--color-text-primary)]">
+                {t.ideas.tailoredContentIdeas}
+              </h2>
+              <p className="text-[var(--color-text-tertiary)] text-xs sm:text-sm">
+                {t.ideas.generatedByAI}
+              </p>
             </div>
           </div>
           <IdeaGenerator ideas={ideas} trendName={trend.name} />

@@ -54,79 +54,101 @@ export const AnalyticsPage: React.FC<AnalyticsPageProps> = ({ trends }) => {
     return num.toString();
   };
 
+  const statCards = [
+    {
+      icon: <Video className="w-5 h-5" />,
+      iconColor: 'var(--color-accent-blue)',
+      iconBg: 'rgba(10, 132, 255, 0.12)',
+      label: t.analyticsPage.total,
+      value: stats.totalVideos.toString(),
+      sub: t.analyticsPage.videosTracked,
+    },
+    {
+      icon: <Eye className="w-5 h-5" />,
+      iconColor: 'var(--color-accent-purple)',
+      iconBg: 'rgba(191, 90, 242, 0.12)',
+      label: t.analyticsPage.viewsLabel,
+      value: formatNumber(stats.totalViews),
+      sub: t.analyticsPage.totalViews,
+    },
+    {
+      icon: <TrendingUp className="w-5 h-5" />,
+      iconColor: 'var(--color-accent-green)',
+      iconBg: 'rgba(48, 209, 88, 0.12)',
+      label: t.analyticsPage.growthLabel,
+      value: `${stats.avgGrowthRate.toFixed(0)}%`,
+      sub: t.analyticsPage.avgGrowthRate,
+    },
+    {
+      icon: <Users className="w-5 h-5" />,
+      iconColor: 'var(--color-accent-orange)',
+      iconBg: 'rgba(255, 159, 10, 0.12)',
+      label: t.analyticsPage.engagementLabel,
+      value: stats.avgEngagement.toFixed(0),
+      sub: t.analyticsPage.avgScore,
+    },
+  ];
+
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100 p-4 sm:p-6 overflow-y-auto">
+    <div className="p-4 sm:p-6 overflow-y-auto" style={{ color: 'var(--color-text-primary)' }}>
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-6 sm:mb-8">
-          <h1 className="text-2xl sm:text-3xl font-bold mb-2 flex items-center gap-3">
-            <BarChart3 className="w-6 h-6 sm:w-8 sm:h-8 text-blue-500" />
+        <div className="mb-6 sm:mb-8 animate-fade-in">
+          <h1 className="text-2xl sm:text-3xl font-serif mb-2 flex items-center gap-3">
+            <BarChart3 className="w-6 h-6 sm:w-8 sm:h-8" style={{ color: 'var(--color-accent-blue)' }} />
             {t.analyticsPage.title}
           </h1>
-          <p className="text-sm sm:text-base text-zinc-400">
+          <p className="text-sm sm:text-base" style={{ color: 'var(--color-text-tertiary)' }}>
             {t.analyticsPage.overview}
           </p>
         </div>
 
         {trends.length === 0 ? (
-          <div className="text-center py-16 sm:py-20">
-            <Activity className="w-12 h-12 sm:w-16 sm:h-16 text-zinc-700 mx-auto mb-4" />
-            <h3 className="text-lg sm:text-xl font-semibold text-zinc-400 mb-2">{t.analyticsPage.noData}</h3>
-            <p className="text-sm text-zinc-500">
-              {t.analyticsPage.noDataDescription}
-            </p>
+          <div className="flex items-center justify-center py-16 sm:py-20 animate-fade-in">
+            <div className="glass-prominent rounded-3xl p-10 sm:p-14 text-center max-w-sm">
+              <Activity
+                className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-4"
+                style={{ color: 'var(--color-text-tertiary)', opacity: 0.4 }}
+              />
+              <h3 className="text-lg sm:text-xl font-semibold mb-2" style={{ color: 'var(--color-text-secondary)' }}>
+                {t.analyticsPage.noData}
+              </h3>
+              <p className="text-sm" style={{ color: 'var(--color-text-tertiary)' }}>
+                {t.analyticsPage.noDataDescription}
+              </p>
+            </div>
           </div>
         ) : (
           <>
             {/* Stats Grid */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
-              {/* Total Videos */}
-              <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 sm:p-6">
-                <div className="flex items-center justify-between mb-2">
-                  <Video className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />
-                  <span className="text-[10px] sm:text-xs text-zinc-500 font-medium">{t.analyticsPage.total}</span>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6 sm:mb-8 stagger-children">
+              {statCards.map((card, i) => (
+                <div key={i} className="glass-prominent rounded-2xl p-4 sm:p-5 animate-fade-in">
+                  <div className="flex items-center justify-between mb-3">
+                    <div
+                      className="w-9 h-9 rounded-xl flex items-center justify-center"
+                      style={{ background: card.iconBg, color: card.iconColor }}
+                    >
+                      {card.icon}
+                    </div>
+                    <span className="text-[10px] sm:text-xs font-medium" style={{ color: 'var(--color-text-tertiary)' }}>
+                      {card.label}
+                    </span>
+                  </div>
+                  <div className="text-2xl sm:text-3xl font-bold mb-0.5">{card.value}</div>
+                  <div className="text-xs sm:text-sm" style={{ color: 'var(--color-text-tertiary)' }}>
+                    {card.sub}
+                  </div>
                 </div>
-                <div className="text-2xl sm:text-3xl font-bold mb-1">{stats.totalVideos}</div>
-                <div className="text-xs sm:text-sm text-zinc-400">{t.analyticsPage.videosTracked}</div>
-              </div>
-
-              {/* Total Views */}
-              <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 sm:p-6">
-                <div className="flex items-center justify-between mb-2">
-                  <Eye className="w-4 h-4 sm:w-5 sm:h-5 text-purple-500" />
-                  <span className="text-[10px] sm:text-xs text-zinc-500 font-medium">{t.analyticsPage.viewsLabel}</span>
-                </div>
-                <div className="text-2xl sm:text-3xl font-bold mb-1">{formatNumber(stats.totalViews)}</div>
-                <div className="text-xs sm:text-sm text-zinc-400">{t.analyticsPage.totalViews}</div>
-              </div>
-
-              {/* Avg Growth Rate */}
-              <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 sm:p-6">
-                <div className="flex items-center justify-between mb-2">
-                  <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />
-                  <span className="text-[10px] sm:text-xs text-zinc-500 font-medium">{t.analyticsPage.growthLabel}</span>
-                </div>
-                <div className="text-2xl sm:text-3xl font-bold mb-1">{stats.avgGrowthRate.toFixed(0)}%</div>
-                <div className="text-xs sm:text-sm text-zinc-400">{t.analyticsPage.avgGrowthRate}</div>
-              </div>
-
-              {/* Avg Engagement */}
-              <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 sm:p-6">
-                <div className="flex items-center justify-between mb-2">
-                  <Users className="w-4 h-4 sm:w-5 sm:h-5 text-amber-500" />
-                  <span className="text-[10px] sm:text-xs text-zinc-500 font-medium">{t.analyticsPage.engagementLabel}</span>
-                </div>
-                <div className="text-2xl sm:text-3xl font-bold mb-1">{stats.avgEngagement.toFixed(0)}</div>
-                <div className="text-xs sm:text-sm text-zinc-400">{t.analyticsPage.avgScore}</div>
-              </div>
+              ))}
             </div>
 
-            {/* Top Trends */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8">
+            {/* Top Trends: Two columns */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8 stagger-children">
               {/* Top Growing Trends */}
-              <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 sm:p-6">
+              <div className="glass-prominent rounded-2xl p-4 sm:p-6 animate-fade-in">
                 <h3 className="text-base sm:text-lg font-bold mb-3 sm:mb-4 flex items-center gap-2">
-                  <ArrowUp className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />
+                  <ArrowUp className="w-5 h-5" style={{ color: 'var(--color-accent-green)' }} />
                   {t.analyticsPage.topGrowingTrends}
                 </h3>
                 <div className="space-y-2 sm:space-y-3">
@@ -134,19 +156,34 @@ export const AnalyticsPage: React.FC<AnalyticsPageProps> = ({ trends }) => {
                     .sort((a, b) => b.growthRate - a.growthRate)
                     .slice(0, 5)
                     .map((trend, index) => (
-                      <div key={trend.id} className="flex items-center justify-between p-2.5 sm:p-3 bg-zinc-950/50 rounded-lg">
+                      <div
+                        key={trend.id}
+                        className="glass rounded-xl flex items-center justify-between p-2.5 sm:p-3"
+                      >
                         <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-                          <div className="w-7 h-7 sm:w-8 sm:h-8 bg-green-500/10 rounded-lg flex items-center justify-center text-green-400 font-bold text-xs sm:text-sm flex-shrink-0">
+                          <div
+                            className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center font-bold text-xs sm:text-sm shrink-0"
+                            style={{
+                              background: 'rgba(48, 209, 88, 0.1)',
+                              color: 'var(--color-accent-green)',
+                            }}
+                          >
                             #{index + 1}
                           </div>
                           <div className="min-w-0">
                             <div className="font-medium text-xs sm:text-sm truncate">{trend.name}</div>
-                            <div className="text-[10px] sm:text-xs text-zinc-500">{trend.category}</div>
+                            <div className="text-[10px] sm:text-xs" style={{ color: 'var(--color-text-tertiary)' }}>
+                              {trend.category}
+                            </div>
                           </div>
                         </div>
-                        <div className="text-right flex-shrink-0 ml-2">
-                          <div className="text-green-400 font-bold text-sm">+{trend.growthRate}%</div>
-                          <div className="text-[10px] sm:text-xs text-zinc-500">{formatNumber(trend.totalViews)} {t.analyticsPage.views}</div>
+                        <div className="text-right shrink-0 ml-2">
+                          <div className="font-bold text-sm" style={{ color: 'var(--color-accent-green)' }}>
+                            +{trend.growthRate}%
+                          </div>
+                          <div className="text-[10px] sm:text-xs" style={{ color: 'var(--color-text-tertiary)' }}>
+                            {formatNumber(trend.totalViews)} {t.analyticsPage.views}
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -154,9 +191,9 @@ export const AnalyticsPage: React.FC<AnalyticsPageProps> = ({ trends }) => {
               </div>
 
               {/* Most Engaging Trends */}
-              <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 sm:p-6">
+              <div className="glass-prominent rounded-2xl p-4 sm:p-6 animate-fade-in">
                 <h3 className="text-base sm:text-lg font-bold mb-3 sm:mb-4 flex items-center gap-2">
-                  <Users className="w-4 h-4 sm:w-5 sm:h-5 text-amber-500" />
+                  <Users className="w-5 h-5" style={{ color: 'var(--color-accent-orange)' }} />
                   {t.analyticsPage.mostEngagingTrends}
                 </h3>
                 <div className="space-y-2 sm:space-y-3">
@@ -164,19 +201,34 @@ export const AnalyticsPage: React.FC<AnalyticsPageProps> = ({ trends }) => {
                     .sort((a, b) => b.engagementScore - a.engagementScore)
                     .slice(0, 5)
                     .map((trend, index) => (
-                      <div key={trend.id} className="flex items-center justify-between p-2.5 sm:p-3 bg-zinc-950/50 rounded-lg">
+                      <div
+                        key={trend.id}
+                        className="glass rounded-xl flex items-center justify-between p-2.5 sm:p-3"
+                      >
                         <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-                          <div className="w-7 h-7 sm:w-8 sm:h-8 bg-amber-500/10 rounded-lg flex items-center justify-center text-amber-400 font-bold text-xs sm:text-sm flex-shrink-0">
+                          <div
+                            className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center font-bold text-xs sm:text-sm shrink-0"
+                            style={{
+                              background: 'rgba(255, 159, 10, 0.1)',
+                              color: 'var(--color-accent-orange)',
+                            }}
+                          >
                             #{index + 1}
                           </div>
                           <div className="min-w-0">
                             <div className="font-medium text-xs sm:text-sm truncate">{trend.name}</div>
-                            <div className="text-[10px] sm:text-xs text-zinc-500">{trend.category}</div>
+                            <div className="text-[10px] sm:text-xs" style={{ color: 'var(--color-text-tertiary)' }}>
+                              {trend.category}
+                            </div>
                           </div>
                         </div>
-                        <div className="text-right flex-shrink-0 ml-2">
-                          <div className="text-amber-400 font-bold text-sm">{trend.engagementScore}</div>
-                          <div className="text-[10px] sm:text-xs text-zinc-500">{t.analyticsPage.engagement}</div>
+                        <div className="text-right shrink-0 ml-2">
+                          <div className="font-bold text-sm" style={{ color: 'var(--color-accent-orange)' }}>
+                            {trend.engagementScore}
+                          </div>
+                          <div className="text-[10px] sm:text-xs" style={{ color: 'var(--color-text-tertiary)' }}>
+                            {t.analyticsPage.engagement}
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -185,9 +237,9 @@ export const AnalyticsPage: React.FC<AnalyticsPageProps> = ({ trends }) => {
             </div>
 
             {/* Category Breakdown */}
-            <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 sm:p-6 mb-6 sm:mb-8">
+            <div className="glass-prominent rounded-2xl p-4 sm:p-6 mb-6 sm:mb-8 animate-fade-in">
               <h3 className="text-base sm:text-lg font-bold mb-3 sm:mb-4">{t.analyticsPage.categoryBreakdown}</h3>
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {Object.entries(
                   trends.reduce((acc, trend) => {
                     acc[trend.category] = (acc[trend.category] || 0) + 1;
@@ -199,14 +251,22 @@ export const AnalyticsPage: React.FC<AnalyticsPageProps> = ({ trends }) => {
                     const percentage = ((count as number) / trends.length) * 100;
                     return (
                       <div key={category}>
-                        <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center justify-between mb-1.5">
                           <span className="text-xs sm:text-sm font-medium">{category}</span>
-                          <span className="text-xs sm:text-sm text-zinc-400">{t.analyticsPage.trends(count as number)} ({percentage.toFixed(0)}%)</span>
+                          <span className="text-xs sm:text-sm" style={{ color: 'var(--color-text-tertiary)' }}>
+                            {t.analyticsPage.trends(count as number)} ({percentage.toFixed(0)}%)
+                          </span>
                         </div>
-                        <div className="w-full bg-zinc-800 rounded-full h-2">
+                        <div
+                          className="w-full h-2 rounded-full overflow-hidden"
+                          style={{ background: 'rgba(255, 255, 255, 0.06)' }}
+                        >
                           <div
-                            className="bg-blue-500 h-2 rounded-full transition-all duration-500"
-                            style={{ width: `${percentage}%` }}
+                            className="h-2 rounded-full transition-all duration-700"
+                            style={{
+                              width: `${percentage}%`,
+                              background: 'linear-gradient(90deg, var(--color-accent-blue), rgba(10, 132, 255, 0.6))',
+                            }}
                           />
                         </div>
                       </div>
@@ -216,34 +276,68 @@ export const AnalyticsPage: React.FC<AnalyticsPageProps> = ({ trends }) => {
             </div>
 
             {/* Trend Status */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-              <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 sm:p-6">
-                <div className="flex items-center gap-3 mb-2">
-                  <ArrowUp className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />
-                  <span className="text-xs sm:text-sm font-medium text-zinc-400">{t.analyticsPage.trendingUp}</span>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 stagger-children">
+              {/* Trending Up */}
+              <div className="glass-prominent rounded-2xl p-4 sm:p-6 animate-fade-in">
+                <div className="flex items-center gap-3 mb-3">
+                  <div
+                    className="w-9 h-9 rounded-xl flex items-center justify-center"
+                    style={{ background: 'rgba(48, 209, 88, 0.12)', color: 'var(--color-accent-green)' }}
+                  >
+                    <ArrowUp className="w-5 h-5" />
+                  </div>
+                  <span className="text-xs sm:text-sm font-medium" style={{ color: 'var(--color-text-secondary)' }}>
+                    {t.analyticsPage.trendingUp}
+                  </span>
                 </div>
-                <div className="text-2xl sm:text-3xl font-bold text-green-400">{stats.trendingUp}</div>
-                <div className="text-[10px] sm:text-xs text-zinc-500 mt-1">{t.analyticsPage.growthAbove50}</div>
+                <div className="text-3xl sm:text-4xl font-bold" style={{ color: 'var(--color-accent-green)' }}>
+                  {stats.trendingUp}
+                </div>
+                <div className="text-[10px] sm:text-xs mt-1" style={{ color: 'var(--color-text-tertiary)' }}>
+                  {t.analyticsPage.growthAbove50}
+                </div>
               </div>
 
-              <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 sm:p-6">
-                <div className="flex items-center gap-3 mb-2">
-                  <Activity className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />
-                  <span className="text-xs sm:text-sm font-medium text-zinc-400">{t.analyticsPage.stable}</span>
+              {/* Stable */}
+              <div className="glass-prominent rounded-2xl p-4 sm:p-6 animate-fade-in">
+                <div className="flex items-center gap-3 mb-3">
+                  <div
+                    className="w-9 h-9 rounded-xl flex items-center justify-center"
+                    style={{ background: 'rgba(10, 132, 255, 0.12)', color: 'var(--color-accent-blue)' }}
+                  >
+                    <Activity className="w-5 h-5" />
+                  </div>
+                  <span className="text-xs sm:text-sm font-medium" style={{ color: 'var(--color-text-secondary)' }}>
+                    {t.analyticsPage.stable}
+                  </span>
                 </div>
-                <div className="text-2xl sm:text-3xl font-bold text-blue-400">
+                <div className="text-3xl sm:text-4xl font-bold" style={{ color: 'var(--color-accent-blue)' }}>
                   {Math.max(0, trends.length - stats.trendingUp - stats.trendingDown)}
                 </div>
-                <div className="text-[10px] sm:text-xs text-zinc-500 mt-1">{t.analyticsPage.growth2050}</div>
+                <div className="text-[10px] sm:text-xs mt-1" style={{ color: 'var(--color-text-tertiary)' }}>
+                  {t.analyticsPage.growth2050}
+                </div>
               </div>
 
-              <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 sm:p-6">
-                <div className="flex items-center gap-3 mb-2">
-                  <ArrowDown className="w-4 h-4 sm:w-5 sm:h-5 text-red-500" />
-                  <span className="text-xs sm:text-sm font-medium text-zinc-400">{t.analyticsPage.slowing}</span>
+              {/* Slowing */}
+              <div className="glass-prominent rounded-2xl p-4 sm:p-6 animate-fade-in">
+                <div className="flex items-center gap-3 mb-3">
+                  <div
+                    className="w-9 h-9 rounded-xl flex items-center justify-center"
+                    style={{ background: 'rgba(255, 69, 58, 0.12)', color: 'var(--color-accent-red)' }}
+                  >
+                    <ArrowDown className="w-5 h-5" />
+                  </div>
+                  <span className="text-xs sm:text-sm font-medium" style={{ color: 'var(--color-text-secondary)' }}>
+                    {t.analyticsPage.slowing}
+                  </span>
                 </div>
-                <div className="text-2xl sm:text-3xl font-bold text-red-400">{stats.trendingDown}</div>
-                <div className="text-[10px] sm:text-xs text-zinc-500 mt-1">{t.analyticsPage.growthBelow20}</div>
+                <div className="text-3xl sm:text-4xl font-bold" style={{ color: 'var(--color-accent-red)' }}>
+                  {stats.trendingDown}
+                </div>
+                <div className="text-[10px] sm:text-xs mt-1" style={{ color: 'var(--color-text-tertiary)' }}>
+                  {t.analyticsPage.growthBelow20}
+                </div>
               </div>
             </div>
           </>

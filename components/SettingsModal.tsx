@@ -39,7 +39,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
       setYoutubeIsDefault(data.youtube_is_default ?? true);
       setRapidapiIsDefault(data.rapidapi_is_default ?? true);
     } catch (error) {
-      console.error('Failed to check API keys:', error);
+      // silently handle
     }
   };
 
@@ -117,93 +117,171 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
   const hasAnyKey = hasYoutubeKey || hasRapidapiKey;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="bg-zinc-900 border border-zinc-800 rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-2xl sm:mx-4 max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className="p-4 sm:p-6 border-b border-zinc-800 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-              <Key className="w-5 h-5 text-white" />
+    /* ── Overlay ── */
+    <div
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-md animate-overlay"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
+      {/* ── Modal Panel ── */}
+      <div
+        className={[
+          'glass-prominent w-full overflow-y-auto',
+          /* Mobile: bottom-sheet */
+          'fixed bottom-0 left-0 right-0 max-h-[90vh] rounded-t-3xl animate-sheet',
+          /* sm+: centered card */
+          'sm:relative sm:max-w-xl sm:mx-auto sm:my-8 sm:rounded-3xl sm:bottom-auto sm:max-h-[85vh] sm:animate-fade-in-scale',
+        ].join(' ')}
+      >
+        {/* ── Drag Handle (mobile) ── */}
+        <div className="flex justify-center pt-3 pb-1 sm:hidden">
+          <div className="w-10 h-1 rounded-full bg-white/20" />
+        </div>
+
+        {/* ── Header ── */}
+        <div className="px-5 pt-4 pb-3 sm:px-6 sm:pt-6 sm:pb-4 flex items-center justify-between">
+          <div className="flex items-center gap-3.5">
+            {/* Glass icon circle */}
+            <div className="w-11 h-11 rounded-2xl glass flex items-center justify-center shrink-0">
+              <Key className="w-5 h-5" style={{ color: 'var(--color-accent-blue)' }} />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-white">{t.settings.title}</h2>
-              <p className="text-sm text-zinc-400">{t.settings.subtitle}</p>
+              <h2
+                className="text-lg font-bold tracking-tight"
+                style={{ color: 'var(--color-text-primary)' }}
+              >
+                {t.settings.title}
+              </h2>
+              <p
+                className="text-[13px] leading-snug mt-0.5"
+                style={{ color: 'var(--color-text-secondary)' }}
+              >
+                {t.settings.subtitle}
+              </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-zinc-800 rounded-lg transition-colors text-zinc-400 hover:text-white"
+            className="w-9 h-9 rounded-full glass flex items-center justify-center transition-all duration-200 hover:bg-[var(--color-bg-glass-hover)] active:scale-90"
+            style={{ color: 'var(--color-text-secondary)' }}
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Content */}
-        <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
-          {/* Language Switcher */}
-          <div className="bg-zinc-800/50 border border-zinc-700 rounded-xl p-4">
+        {/* ── Content ── */}
+        <div className="px-5 pb-6 sm:px-6 space-y-3.5 stagger-children">
+
+          {/* ── Language Switcher ── */}
+          <div className="glass rounded-2xl p-4 animate-fade-in">
             <div className="flex items-center gap-2 mb-3">
-              <Globe className="w-4 h-4 text-blue-400" />
-              <span className="text-sm font-semibold text-zinc-200">{t.settings.language}</span>
+              <Globe className="w-4 h-4" style={{ color: 'var(--color-accent-blue)' }} />
+              <span
+                className="text-[13px] font-semibold"
+                style={{ color: 'var(--color-text-primary)' }}
+              >
+                {t.settings.language}
+              </span>
             </div>
             <div className="flex gap-2">
-              <button
-                onClick={() => setLang('ru')}
-                className={`flex-1 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${lang === 'ru'
-                  ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
-                  : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-white'
-                  }`}
-              >
-                🇷🇺 {t.settings.languageRussian}
-              </button>
-              <button
-                onClick={() => setLang('en')}
-                className={`flex-1 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${lang === 'en'
-                  ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
-                  : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-white'
-                  }`}
-              >
-                🇬🇧 {t.settings.languageEnglish}
-              </button>
+              {(['ru', 'en'] as const).map((code) => {
+                const active = lang === code;
+                const label = code === 'ru' ? t.settings.languageRussian : t.settings.languageEnglish;
+                const flag = code === 'ru' ? '🇷🇺' : '🇬🇧';
+                return (
+                  <button
+                    key={code}
+                    onClick={() => setLang(code)}
+                    className={[
+                      'flex-1 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-300',
+                      active
+                        ? 'text-white shadow-lg'
+                        : 'glass text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-glass-hover)] hover:text-[var(--color-text-primary)]',
+                    ].join(' ')}
+                    style={active ? {
+                      backgroundColor: 'var(--color-accent-blue)',
+                      boxShadow: 'var(--shadow-glow-blue)',
+                    } : undefined}
+                  >
+                    {flag} {label}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
-          {/* Status Banner - Default keys active */}
-          <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-4 flex items-start gap-3">
-            <Check className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
-            <div className="flex-1">
-              <p className="text-sm font-medium text-emerald-300">{t.settings.apiKeysActive}</p>
-              <div className="text-xs mt-2 space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-emerald-400/80">{t.settings.youtubeDataAPI}</span>
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${youtubeIsDefault
-                    ? 'bg-blue-500/20 text-blue-300'
-                    : 'bg-emerald-500/20 text-emerald-300'
-                    }`}>
-                    {youtubeIsDefault ? t.settings.builtIn : t.settings.custom}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-emerald-400/80">{t.settings.tiktokScraptik}</span>
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${rapidapiIsDefault
-                    ? 'bg-blue-500/20 text-blue-300'
-                    : 'bg-emerald-500/20 text-emerald-300'
-                    }`}>
-                    {rapidapiIsDefault ? t.settings.builtIn : t.settings.custom}
-                  </span>
-                </div>
+          {/* ── API Status Banner ── */}
+          <div
+            className="glass rounded-2xl p-4 animate-fade-in"
+            style={{
+              borderColor: 'rgba(48, 209, 88, 0.2)',
+              background: 'rgba(48, 209, 88, 0.06)',
+            }}
+          >
+            <div className="flex items-start gap-3">
+              <div
+                className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 mt-0.5"
+                style={{ background: 'rgba(48, 209, 88, 0.15)' }}
+              >
+                <Check className="w-4 h-4" style={{ color: 'var(--color-accent-green)' }} />
               </div>
-              <p className="text-[11px] text-emerald-400/50 mt-2">
-                {t.settings.builtInKeysNote}
-              </p>
+              <div className="flex-1 min-w-0">
+                <p
+                  className="text-sm font-semibold"
+                  style={{ color: 'var(--color-accent-green)' }}
+                >
+                  {t.settings.apiKeysActive}
+                </p>
+
+                {/* Status rows */}
+                <div className="mt-2.5 space-y-2">
+                  {/* YouTube row */}
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs" style={{ color: 'rgba(48, 209, 88, 0.7)' }}>
+                      {t.settings.youtubeDataAPI}
+                    </span>
+                    <span
+                      className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold tracking-wide uppercase"
+                      style={youtubeIsDefault
+                        ? { background: 'rgba(10, 132, 255, 0.15)', color: 'var(--color-accent-blue)' }
+                        : { background: 'rgba(48, 209, 88, 0.15)', color: 'var(--color-accent-green)' }
+                      }
+                    >
+                      {youtubeIsDefault ? t.settings.builtIn : t.settings.custom}
+                    </span>
+                  </div>
+                  {/* TikTok row */}
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs" style={{ color: 'rgba(48, 209, 88, 0.7)' }}>
+                      {t.settings.tiktokScraptik}
+                    </span>
+                    <span
+                      className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold tracking-wide uppercase"
+                      style={rapidapiIsDefault
+                        ? { background: 'rgba(10, 132, 255, 0.15)', color: 'var(--color-accent-blue)' }
+                        : { background: 'rgba(48, 209, 88, 0.15)', color: 'var(--color-accent-green)' }
+                      }
+                    >
+                      {rapidapiIsDefault ? t.settings.builtIn : t.settings.custom}
+                    </span>
+                  </div>
+                </div>
+
+                <p className="text-[11px] mt-2.5" style={{ color: 'rgba(48, 209, 88, 0.4)' }}>
+                  {t.settings.builtInKeysNote}
+                </p>
+              </div>
             </div>
           </div>
 
-          {/* Run Pipeline Button */}
+          {/* ── Run Pipeline Button ── */}
           <button
             onClick={handleRunPipeline}
             disabled={isRunningPipeline}
-            className="w-full px-4 py-3 bg-emerald-600 hover:bg-emerald-700 disabled:bg-zinc-700 disabled:text-zinc-500 text-white font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
+            className="w-full px-4 py-3.5 rounded-xl text-sm font-semibold text-white transition-all duration-300 flex items-center justify-center gap-2.5 active:scale-[0.97] disabled:opacity-40 disabled:pointer-events-none"
+            style={{
+              backgroundColor: 'var(--color-accent-green)',
+              boxShadow: isRunningPipeline ? 'none' : 'var(--shadow-glow-green)',
+            }}
           >
             {isRunningPipeline ? (
               <>
@@ -218,60 +296,91 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
             )}
           </button>
 
-          {/* Validation Message */}
+          {/* ── Validation Message ── */}
           {message && (
             <div
-              className={`rounded-lg p-4 flex items-start gap-3 ${validationStatus === 'success'
-                ? 'bg-emerald-500/10 border border-emerald-500/20'
-                : validationStatus === 'error'
-                  ? 'bg-red-500/10 border border-red-500/20'
-                  : 'bg-blue-500/10 border border-blue-500/20'
-                }`}
-            >
-              {validationStatus === 'success' && <Check className="w-5 h-5 text-emerald-400 flex-shrink-0" />}
-              {validationStatus === 'error' && <X className="w-5 h-5 text-red-400 flex-shrink-0" />}
-              {validationStatus === 'idle' && <Loader2 className="w-5 h-5 text-blue-400 flex-shrink-0 animate-spin" />}
-              <p
-                className={`text-sm ${validationStatus === 'success'
-                  ? 'text-emerald-300'
+              className="glass rounded-2xl p-4 flex items-start gap-3 animate-fade-in"
+              style={{
+                borderColor: validationStatus === 'success'
+                  ? 'rgba(48, 209, 88, 0.25)'
                   : validationStatus === 'error'
-                    ? 'text-red-300'
-                    : 'text-blue-300'
-                  }`}
+                    ? 'rgba(255, 69, 58, 0.25)'
+                    : 'rgba(10, 132, 255, 0.25)',
+                background: validationStatus === 'success'
+                  ? 'rgba(48, 209, 88, 0.06)'
+                  : validationStatus === 'error'
+                    ? 'rgba(255, 69, 58, 0.06)'
+                    : 'rgba(10, 132, 255, 0.06)',
+              }}
+            >
+              {validationStatus === 'success' && (
+                <Check className="w-5 h-5 shrink-0" style={{ color: 'var(--color-accent-green)' }} />
+              )}
+              {validationStatus === 'error' && (
+                <X className="w-5 h-5 shrink-0" style={{ color: 'var(--color-accent-red)' }} />
+              )}
+              {validationStatus === 'idle' && (
+                <Loader2
+                  className="w-5 h-5 shrink-0 animate-spin"
+                  style={{ color: 'var(--color-accent-blue)' }}
+                />
+              )}
+              <p
+                className="text-sm leading-relaxed"
+                style={{
+                  color: validationStatus === 'success'
+                    ? 'var(--color-accent-green)'
+                    : validationStatus === 'error'
+                      ? 'var(--color-accent-red)'
+                      : 'var(--color-accent-blue)',
+                }}
               >
                 {message}
               </p>
             </div>
           )}
 
-          {/* Override Section - Collapsible */}
-          <div className="border border-zinc-700 rounded-lg overflow-hidden">
+          {/* ── Override Section (Collapsible) ── */}
+          <div className="glass rounded-2xl overflow-hidden">
             <button
               onClick={() => setShowOverride(!showOverride)}
-              className="w-full px-4 py-3 bg-zinc-800/50 hover:bg-zinc-800 text-sm text-zinc-400 flex items-center justify-between transition-colors"
+              className="w-full px-4 py-3.5 text-sm flex items-center justify-between transition-all duration-200 hover:bg-[var(--color-bg-glass-hover)]"
+              style={{ color: 'var(--color-text-secondary)' }}
             >
-              <span className="flex items-center gap-2">
+              <span className="flex items-center gap-2.5">
                 <Key className="w-3.5 h-3.5" />
-                {t.settings.useYourOwnKeys}
+                <span className="font-medium">{t.settings.useYourOwnKeys}</span>
               </span>
-              <span className="text-xs">{showOverride ? '▲' : '▼'}</span>
+              <span
+                className="text-xs transition-transform duration-300"
+                style={{ transform: showOverride ? 'rotate(180deg)' : 'rotate(0deg)' }}
+              >
+                ▼
+              </span>
             </button>
 
             {showOverride && (
-              <div className="p-4 space-y-4 border-t border-zinc-700">
-                <p className="text-xs text-zinc-500">
+              <div
+                className="px-4 pb-4 space-y-4 animate-fade-in"
+                style={{ borderTop: '1px solid var(--color-border-glass)' }}
+              >
+                <p className="text-xs pt-3" style={{ color: 'var(--color-text-tertiary)' }}>
                   {t.settings.overrideNote}
                 </p>
 
                 {/* YouTube override */}
                 <div className="space-y-2">
-                  <label className="text-xs font-medium text-zinc-400 flex items-center gap-1.5">
+                  <label
+                    className="text-xs font-medium flex items-center gap-1.5"
+                    style={{ color: 'var(--color-text-secondary)' }}
+                  >
                     {t.settings.youtubeAPILabel}{' '}
                     <a
                       href="https://console.cloud.google.com/apis/credentials"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-blue-400 hover:text-blue-300 inline-flex items-center gap-0.5"
+                      className="inline-flex items-center gap-0.5 transition-opacity duration-200 hover:opacity-80"
+                      style={{ color: 'var(--color-accent-blue)' }}
                     >
                       {t.settings.getFreeKey} <ExternalLink className="w-3 h-3" />
                     </a>
@@ -282,15 +391,32 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
                       value={youtubeKey}
                       onChange={(e) => setYoutubeKey(e.target.value)}
                       placeholder={t.settings.yourYoutubeKey}
-                      className="flex-1 px-3 py-2 bg-zinc-800 border border-zinc-600 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent text-sm"
                       disabled={isValidating}
+                      className="flex-1 px-3.5 py-2.5 rounded-xl text-sm outline-none transition-all duration-200 placeholder:opacity-40"
+                      style={{
+                        background: 'var(--color-bg-glass)',
+                        border: '1px solid var(--color-border-glass)',
+                        color: 'var(--color-text-primary)',
+                      }}
+                      onFocus={(e) => {
+                        e.currentTarget.style.borderColor = 'rgba(255, 69, 58, 0.5)';
+                        e.currentTarget.style.boxShadow = '0 0 0 3px rgba(255, 69, 58, 0.1)';
+                      }}
+                      onBlur={(e) => {
+                        e.currentTarget.style.borderColor = 'var(--color-border-glass)';
+                        e.currentTarget.style.boxShadow = 'none';
+                      }}
                     />
                     <button
                       onClick={() => handleSaveKey('youtube')}
                       disabled={isValidating || !youtubeKey.trim()}
-                      className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-zinc-700 disabled:text-zinc-500 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-1.5"
+                      className="px-4 py-2.5 rounded-xl text-sm font-semibold text-white transition-all duration-200 flex items-center gap-1.5 active:scale-95 disabled:opacity-30 disabled:pointer-events-none"
+                      style={{ backgroundColor: 'var(--color-accent-red)' }}
                     >
-                      {validatingKey === 'youtube' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                      {validatingKey === 'youtube'
+                        ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        : <Check className="w-3.5 h-3.5" />
+                      }
                       {t.settings.save}
                     </button>
                   </div>
@@ -298,13 +424,17 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
 
                 {/* RapidAPI override */}
                 <div className="space-y-2">
-                  <label className="text-xs font-medium text-zinc-400 flex items-center gap-1.5">
+                  <label
+                    className="text-xs font-medium flex items-center gap-1.5"
+                    style={{ color: 'var(--color-text-secondary)' }}
+                  >
                     {t.settings.rapidAPILabel}{' '}
                     <a
                       href="https://rapidapi.com/scraptik-api-scraptik-api-default/api/scraptik"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-blue-400 hover:text-blue-300 inline-flex items-center gap-0.5"
+                      className="inline-flex items-center gap-0.5 transition-opacity duration-200 hover:opacity-80"
+                      style={{ color: 'var(--color-accent-blue)' }}
                     >
                       {t.settings.getFreeKey} <ExternalLink className="w-3 h-3" />
                     </a>
@@ -315,15 +445,32 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
                       value={rapidapiKey}
                       onChange={(e) => setRapidapiKey(e.target.value)}
                       placeholder={t.settings.yourRapidAPIKey}
-                      className="flex-1 px-3 py-2 bg-zinc-800 border border-zinc-600 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-sm"
                       disabled={isValidating}
+                      className="flex-1 px-3.5 py-2.5 rounded-xl text-sm outline-none transition-all duration-200 placeholder:opacity-40"
+                      style={{
+                        background: 'var(--color-bg-glass)',
+                        border: '1px solid var(--color-border-glass)',
+                        color: 'var(--color-text-primary)',
+                      }}
+                      onFocus={(e) => {
+                        e.currentTarget.style.borderColor = 'rgba(100, 210, 255, 0.5)';
+                        e.currentTarget.style.boxShadow = '0 0 0 3px rgba(100, 210, 255, 0.1)';
+                      }}
+                      onBlur={(e) => {
+                        e.currentTarget.style.borderColor = 'var(--color-border-glass)';
+                        e.currentTarget.style.boxShadow = 'none';
+                      }}
                     />
                     <button
                       onClick={() => handleSaveKey('rapidapi')}
                       disabled={isValidating || !rapidapiKey.trim()}
-                      className="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 disabled:bg-zinc-700 disabled:text-zinc-500 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-1.5"
+                      className="px-4 py-2.5 rounded-xl text-sm font-semibold text-white transition-all duration-200 flex items-center gap-1.5 active:scale-95 disabled:opacity-30 disabled:pointer-events-none"
+                      style={{ backgroundColor: 'var(--color-accent-teal)' }}
                     >
-                      {validatingKey === 'rapidapi' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                      {validatingKey === 'rapidapi'
+                        ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        : <Check className="w-3.5 h-3.5" />
+                      }
                       {t.settings.save}
                     </button>
                   </div>
@@ -332,10 +479,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
             )}
           </div>
 
-          {/* Info Note */}
-          <div className="text-xs text-zinc-500 space-y-1">
-            <p>{t.settings.securityNote}</p>
-            <p>{t.settings.quotaNote}</p>
+          {/* ── Info Notes ── */}
+          <div className="space-y-1 px-1 pb-1">
+            <p className="text-[11px] leading-relaxed" style={{ color: 'var(--color-text-tertiary)' }}>
+              {t.settings.securityNote}
+            </p>
+            <p className="text-[11px] leading-relaxed" style={{ color: 'var(--color-text-tertiary)' }}>
+              {t.settings.quotaNote}
+            </p>
           </div>
         </div>
       </div>
